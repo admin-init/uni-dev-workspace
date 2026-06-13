@@ -229,6 +229,51 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>  <span
 
 <hr>
 
+<!-- ── M4 ── -->
+<h2 id="m4-retro">M4 Retrospective — Spec Generators + MCP Server</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>cc99656</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/10">#10</a>
+    &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-kb/pull/11">#11</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 187 (159 existing + 28 new) &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>API Contract</strong></td><td><code>api_contract.py</code> — SQLiteStore endpoints → OpenAPI 3.0 YAML with paths, schemas, bearerAuth</td><td>5</td></tr>
+      <tr><td><strong>Business Logic</strong></td><td><code>business_logic.py</code> — methods → Markdown with signatures, params, body hashes</td><td>5</td></tr>
+      <tr><td><strong>Data Model</strong></td><td><code>data_model.py</code> — entities + columns → YAML with PKs, FKs, constraints</td><td>5</td></tr>
+      <tr><td><strong>Auth Matrix</strong></td><td><code>auth_matrix.py</code> — auth_permissions → endpoint/role matrix YAML</td><td>4</td></tr>
+      <tr><td><strong>Config Catalog</strong></td><td><code>config_catalog.py</code> — walks YAML/.env files, flattens to key-value catalog</td><td>5</td></tr>
+      <tr><td><strong>Migration Checklist</strong></td><td><code>migration_checklist.py</code> — CodeGraph topological sort → ordered MD checklist</td><td>4</td></tr>
+      <tr><td><strong>MCP Server</strong></td><td><code>mcp_server.py</code> — 20 tools via <code>mcp.server.Server</code>, stdio transport, 5 categories</td><td>—</td></tr>
+      <tr><td><strong>CLI</strong></td><td><code>cli.py</code> — <code>uni-kb generate</code> (all/specific) + <code>uni-kb serve</code> (MCP)</td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total new tests</strong></td><td><strong>28</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways</h4>
+  <ul>
+    <li><strong>Generators are thin wrappers over SQLiteStore.</strong> All 6 generators query the store and format output. No ChromaDB or NetworkX needed except migration_checklist (graph) and search_code (Chroma in MCP).</li>
+    <li><strong>YAML generation needs explicit type annotations.</strong> Pyright flags dict-of-dict assignments as type errors even when correct at runtime. Using <code>dict[str, Any]</code> silences them.</li>
+    <li><strong>MCP tools are async generators.</strong> The <code>@app.tool()</code> decorator pattern works nicely — each tool maps directly to a store query or generator call.</li>
+    <li><strong>Config catalog flattens nested YAML.</strong> <code>server.port</code> dotted keys make for easy MCP queries. <code>.env</code> parsing handles comments and inline values.</li>
+  </ul>
+</div>
+
+<hr>
+
 <!-- ── M3 ── -->
 <h2 id="m3-retro">M3 Retrospective — Node.js Parsers</h2>
 

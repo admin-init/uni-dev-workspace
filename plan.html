@@ -892,11 +892,22 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~1 week &nbsp;|&nbsp; <strong>Commit:</strong> <code>11b8f01</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/6">#6</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-kb/pull/8">#8</a></p>
 </div>
 
-<div class="step planned">
-  <h3>Phase 4: Spec Generators + MCP Server <span class="badge badge-yellow">P1</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 4: Spec Generators + MCP Server <span class="badge badge-yellow">P1</span> <span class="badge badge-green">M4 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
   <p>6 generators consuming KB data, producing specs. MCP server exposing 20 tools.</p>
-  <p><strong>Estimate:</strong> ~1.5 weeks</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li>&#x2705; <code>generators/api_contract.py</code> — SQLiteStore → OpenAPI 3.0 YAML</li>
+    <li>&#x2705; <code>generators/business_logic.py</code> — methods → Markdown pseudo-code</li>
+    <li>&#x2705; <code>generators/data_model.py</code> — entities → YAML model spec</li>
+    <li>&#x2705; <code>generators/auth_matrix.py</code> — permissions → matrix YAML</li>
+    <li>&#x2705; <code>generators/config_catalog.py</code> — YAML/.env → config catalog</li>
+    <li>&#x2705; <code>generators/migration_checklist.py</code> — dep graph → checklist MD</li>
+    <li>&#x2705; <code>mcp_server.py</code> — 20 MCP tools, 5 categories</li>
+    <li>&#x2705; <code>uni-kb generate</code> + <code>serve</code> CLI commands</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commit:</strong> <code>cc99656</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/10">#10</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-kb/pull/11">#11</a></p>
 </div>
 
 <div class="step planned">
@@ -951,6 +962,24 @@ $ uni-dev status</pre>
   <p style="margin-top:8px;margin-bottom:0;">
     <span class="badge badge-green">M2 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m2-retro">Full retrospective</a>
+  </p>
+</div>
+
+<!-- ── M4 Retrospective → retrospectives.html ── -->
+<h2 id="m4-conclusion">M4 Retrospective — Spec Generators + MCP Server</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>cc99656</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/10">#10</a>
+    &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-kb/pull/11">#11</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 187
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M4 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m4-retro">Full retrospective</a>
   </p>
 </div>
 
