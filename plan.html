@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uni-dev — Implementation Plan</title>
+<style>
+/* ── Catppuccin Mocha Variables ── */
+:root {
+  --bg: #1e1e2e;
+  --bg-surface: #181825;
+  --surface0: #313244;
+  --surface1: #45475a;
+  --surface2: #585b70;
+  --text: #cdd6f4;
+  --subtext0: #a6adc8;
+  --subtext1: #bac2de;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --mauve: #cba6f7;
+  --pink: #f5c2e7;
+  --teal: #94e2d5;
+  --peach: #fab387;
+  --sky: #89dceb;
+  --lavender: #b4befe;
+  --border: var(--surface1);
+  --radius: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Layout ── */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+header {
+  text-align: center;
+  padding: 48px 0 32px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 40px;
+}
+
+h1 {
+  font-size: 2rem;
+  color: var(--mauve);
+  margin-bottom: 8px;
+}
+h1 span { color: var(--blue); }
+
+.tagline {
+  color: var(--subtext0);
+  font-size: 0.95rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+  color: var(--pink);
+  margin: 40px 0 16px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--surface1);
+}
+
+h3 {
+  font-size: 1.1rem;
+  color: var(--teal);
+  margin: 28px 0 12px;
+}
+
+h4 {
+  font-size: 0.95rem;
+  color: var(--yellow);
+  margin: 20px 0 8px;
+}
+
+p { margin-bottom: 12px; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Badges ── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 4px;
+}
+.badge-blue  { background: rgba(137, 180, 250, 0.15); color: var(--blue); }
+.badge-green { background: rgba(166, 227, 161, 0.15); color: var(--green); }
+.badge-red   { background: rgba(243, 139, 168, 0.15); color: var(--red); }
+.badge-yellow{ background: rgba(249, 226, 175, 0.15); color: var(--yellow); }
+.badge-mauve { background: rgba(203, 166, 247, 0.15); color: var(--mauve); }
+.badge-teal  { background: rgba(148, 226, 213, 0.15); color: var(--teal); }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card h4 { margin-top: 0; color: var(--lavender); }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* ── Tables ── */
+.table-wrap {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.89rem;
+}
+th {
+  background: var(--surface0);
+  color: var(--blue);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--surface2);
+  white-space: nowrap;
+}
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--surface1);
+  vertical-align: top;
+}
+tr:hover td { background: rgba(255,255,255,0.02); }
+tr:last-child td { border-bottom: none; }
+
+/* ── Code / Pre ── */
+code {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.85rem;
+  background: var(--surface0);
+  color: var(--peach);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+pre .keyword { color: var(--mauve); }
+pre .string  { color: var(--green); }
+pre .comment { color: var(--surface2); }
+pre .func    { color: var(--blue); }
+pre .type    { color: var(--yellow); }
+pre .number  { color: var(--peach); }
+
+/* ── Steps / Timeline ── */
+.step {
+  border-left: 3px solid var(--surface1);
+  padding-left: 20px;
+  margin-bottom: 24px;
+}
+.step.active   { border-left-color: var(--green); }
+.step.planned  { border-left-color: var(--blue); }
+.step.future   { border-left-color: var(--surface2); }
+
+.step h3 { margin-top: 0; }
+
+/* ── Graph ── */
+.graph-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 16px 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.82rem;
+  line-height: 1.8;
+  white-space: pre;
+  overflow-x: auto;
+}
+.graph-box .node  { color: var(--blue); font-weight: 600; }
+.graph-box .edge  { color: var(--surface2); }
+.graph-box .label { color: var(--teal); }
+.graph-box .gate  { color: var(--green); }
+.graph-box .fail  { color: var(--red); }
+.graph-box .loop  { color: var(--yellow); }
+
+/* ── Tree ── */
+.tree {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 12px 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+.tree .d { color: var(--blue); }
+.tree .f { color: var(--text); }
+.tree .c { color: var(--subtext0); }
+
+/* ── Misc ── */
+hr {
+  border: none;
+  border-top: 1px solid var(--surface1);
+  margin: 32px 0;
+}
+
+ul, ol { padding-left: 24px; margin-bottom: 12px; }
+li { margin-bottom: 4px; }
+
+.footnote {
+  font-size: 0.82rem;
+  color: var(--subtext0);
+  border-top: 1px solid var(--surface1);
+  padding-top: 20px;
+  margin-top: 48px;
+}
+
+/* ── Progress bar ── */
+.progress-bar {
+  background: var(--surface0);
+  border-radius: 8px;
+  height: 10px;
+  margin: 8px 0 16px;
+  overflow: hidden;
+}
+.progress-fill {
+  background: var(--green);
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.4s;
+}
+
+.toc {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 32px;
+}
+.toc h4 { margin-top: 0; color: var(--subtext1); }
+.toc ol { margin-bottom: 0; }
+.toc li { margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ── Header ── -->
+<header>
+  <h1>uni-dev</h1>
+  <p class="tagline">
+    Universal Backend Development Framework &mdash; Multi-Agent SDLC Automation via DDD &rarr; SDD &rarr; TDD
+  </p>
+</header>
+
+<!-- ── TOC ── -->
+<div class="toc">
+  <h4>Table of Contents</h4>
+  <ol>
+    <li><a href="#overview">Overview &amp; Design Principles</a></li>
+    <li><a href="#architecture">System Architecture</a></li>
+    <li><a href="#core">Deterministic LangGraph Core</a></li>
+    <li><a href="#kb">Knowledge Base Design</a></li>
+    <li><a href="#parsers">Parser Extension System</a></li>
+    <li><a href="#orchestrator">Workflow Pipeline</a></li>
+    <li><a href="#agents">LLM Sub-Agents</a></li>
+    <li><a href="#security">Security Filter</a></li>
+    <li><a href="#webhooks">Webhooks &amp; CLI</a></li>
+    <li><a href="#phases">Implementation Phases</a></li>
+    <li><a href="#m1-conclusion">M1 Retrospective</a></li>
+    <li><a href="#deps">Dependency Stack</a></li>
+  </ol>
+</div>
+
+<!-- ── 1. Overview ── -->
+<h2 id="overview">1. Overview &amp; Design Principles</h2>
+
+<p>
+  <code>uni-dev</code> is a universal backend development framework that automates the full software
+  development lifecycle through multi-agent orchestration. It is <strong>not tied to any single project,
+  language, or framework</strong>—it is a methodology encoded into an agent system.
+</p>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>① Specification First</h4>
+    <p>OpenAPI contract written before any implementation code. The spec is the source of truth. Code must conform.</p>
+  </div>
+  <div class="card">
+    <h4>② Test Before Code</h4>
+    <p>Contract tests + unit tests written before implementation. Code is judged by whether tests pass.</p>
+  </div>
+  <div class="card">
+    <h4>③ Domain Model First</h4>
+    <p>Entities, aggregates, value objects, bounded contexts identified before technical design.</p>
+  </div>
+  <div class="card">
+    <h4>④ Deterministic Control</h4>
+    <p>Verification gates, retry limits, iteration ordering — all handled by deterministic Python, never LLM.</p>
+  </div>
+  <div class="card">
+    <h4>⑤ LLM for Intelligence</h4>
+    <p>Code generation, architectural decisions, specification writing — handled by LLM sub-agents.</p>
+  </div>
+  <div class="card">
+    <h4>⑥ Single Source of Truth</h4>
+    <p>The Knowledge Base is the canonical representation of the codebase. Agents query it; they never trust their own memory.</p>
+  </div>
+</div>
+
+<!-- ── 2. Architecture ── -->
+<h2 id="architecture">2. System Architecture</h2>
+
+<pre>
+<span class="comment">┌─────────────────────────────────────────────────────────┐</span>
+<span class="comment">│                    Issue Source                          │</span>
+<span class="comment">│   GitHub Issues / Codeberg Tea  →  /webhook endpoint    │</span>
+<span class="comment">└────────────────────┬────────────────────────────────────┘</span>
+<span class="comment">                     ▼</span>
+<span class="comment">┌─────────────────────────────────────────────────────────┐</span>
+<span class="comment">│                 <span class="keyword">Orchestrator</span> (Main DeepAgent)                │</span>
+<span class="comment">│   ClassificationRouter → DDD → SDD → TDD → Verify       │</span>
+<span class="comment">├─────────────────────────────────────────────────────────┤</span>
+<span class="comment">│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │</span>
+<span class="comment">│  │ Domain       │  │ Spec         │  │ Code          │   │</span>
+<span class="comment">│  │ Designer     │  │ Writer       │  │ Generator     │   │</span>
+<span class="comment">│  │ (LLM Agent)  │  │ (LLM Agent)  │  │ (LLM Agent)   │   │</span>
+<span class="comment">│  └──────────────┘  └──────────────┘  └──────────────┘   │</span>
+<span class="comment">│  ┌──────────────┐  ┌──────────────┐                     │</span>
+<span class="comment">│  │ Test         │  │ Reviewer      │                     │</span>
+<span class="comment">│  │ Generator    │  │ (LLM Agent)   │                     │</span>
+<span class="comment">│  │ (LLM Agent)  │  └──────────────┘                     │</span>
+<span class="comment">│  └──────────────┘                                        │</span>
+<span class="comment">│                                                         │</span>
+<span class="comment">│  ── Deterministic Control Layer (Pure Python) ──        │</span>
+<span class="comment">│  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌───────────┐ │</span>
+<span class="comment">│  │Verifier  │ │Retry     │ │Migration  │ │Classif.   │ │</span>
+<span class="comment">│  │Gate ①    │ │Ctrl ②    │ │Stepper ③  │ │Router ④   │ │</span>
+<span class="comment">│  └──────────┘ └──────────┘ └───────────┘ └───────────┘ │</span>
+<span class="comment">│                                                         │</span>
+<span class="comment">├─────────────────────────────────────────────────────────┤</span>
+<span class="comment">│              <span class="keyword">Knowledge Base</span> (Single Source of Truth)        │</span>
+<span class="comment">│  SQLite(8 tbl)  ChromaDB(14 idx)  NetworkX  MCP(20)    │</span>
+<span class="comment">│  tree-sitter parser plugins → structured JSON           │</span>
+<span class="comment">└─────────────────────────────────────────────────────────┘</span>
+</pre>
+
+<!-- ── 3. Deterministic Core ── -->
+<h2 id="core">3. Deterministic LangGraph Core</h2>
+
+<p>
+  <span class="badge badge-red">Critical Rule</span>
+  These nodes are pure Python. <strong>Zero LLM calls.</strong>
+  They cannot be overridden, hallucinated, or skipped. ~50 lines total per node.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:24px">#</th>
+      <th>Node</th>
+      <th>Logic</th>
+      <th style="width:48px">LOC</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>①</td>
+      <td><code class="badge badge-green">Verification Gate</code></td>
+      <td>Reads MCP <code>compare_api_responses()</code> + <code>verify_contract()</code> + test exit code.<br>Returns <code>pass</code> or <code>fail</code>. LLM cannot override test results.</td>
+      <td>~16</td>
+    </tr>
+    <tr>
+      <td>②</td>
+      <td><code class="badge badge-yellow">Retry Controller</code></td>
+      <td>Counter: <code>attempts &lt; 3 ? "retry" : "escalate_to_human"</code>.<br>LLM cannot argue for a 4th try.</td>
+      <td>~10</td>
+    </tr>
+    <tr>
+      <td>③</td>
+      <td><code class="badge badge-blue">Migration Stepper</code></td>
+      <td>Array index: <code>idx += 1</code>; return <code>"done"</code> if idx >= len(controllers) else <code>"next"</code>.<br>LLM cannot skip or reorder.</td>
+      <td>~11</td>
+    </tr>
+    <tr>
+      <td>④</td>
+      <td><code class="badge badge-mauve">Classification Router</code></td>
+      <td>Dict lookup: <code>routes.get(classification, default)</code>.<br>LLM classifies; code routes. Routing table is immutable.</td>
+      <td>~13</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Workflow StateGraph</h3>
+
+<div class="graph-box">
+<span class="node">[START]</span>
+  <span class="edge">──►</span> <span class="node">ClassificationRouter</span>
+        <span class="edge">──►</span> <span class="label">"add_feature"</span>  <span class="edge">→</span> <span class="node">DomainDesigner</span>  <span class="edge">→</span> <span class="node">SpecWriter</span>  <span class="edge">→</span> <span class="node">TestGenerator</span>  <span class="edge">→</span> <span class="node">CodeGenerator</span>  <span class="edge">→</span> <span class="node">VerificationGate</span>
+        <span class="edge">──►</span> <span class="label">"update_api"</span>  <span class="edge">→</span> <span class="node">SpecWriter</span>     <span class="edge">→</span> <span class="node">TestGenerator</span> <span class="edge">→</span> <span class="node">CodeGenerator</span> <span class="edge">→</span> <span class="node">VerificationGate</span>
+        <span class="edge">──►</span> <span class="label">"remove"</span>       <span class="edge">→</span> <span class="node">DomainDesigner</span>  <span class="edge">→</span> <span class="node">SpecWriter</span>  <span class="edge">→</span> <span class="node">CodeGenerator</span>  <span class="edge">→</span> <span class="node">VerificationGate</span>
+
+<span class="node">VerificationGate</span>
+  <span class="edge">──►</span> <span class="gate">"pass"</span>  <span class="edge">→</span> <span class="node">Reviewer</span>  <span class="edge">→</span> <span class="node">[END]</span>
+  <span class="edge">──►</span> <span class="fail">"fail"</span>  <span class="edge">→</span> <span class="node">RetryController</span>
+       <span class="edge">──►</span> <span class="loop">"retry"</span>            <span class="edge">→</span> <span class="node">CodeGenerator</span> <span class="comment">(back to implementation)</span>
+       <span class="edge">──►</span> <span class="fail">"escalate_to_human"</span> <span class="edge">→</span> <span class="node">[END]</span>
+</div>
+
+<h3>State Schema</h3>
+
+<pre>
+<span class="keyword">class</span> <span class="type">UniDevState</span>(TypedDict):
+    messages:         <span class="type">list</span>[BaseMessage]
+    classification:   <span class="type">str</span>     <span class="comment"># "add_feature" | "update_api" | "remove_feature" | "refactor"</span>
+    attempt_count:    <span class="type">int</span>
+    test_results:     <span class="type">dict</span>    <span class="comment"># {pass: bool, failures: list, output: str}</span>
+    migration_idx:    <span class="type">int</span>
+    migration_plan:   <span class="type">list</span>[<span class="type">str</span>]
+    current_phase:    <span class="type">str</span>     <span class="comment"># "ddd" | "sdd" | "tdd" | "verify" | "done"</span>
+    kb_path:          <span class="type">str</span>     <span class="comment"># .uni-dev/ path for this project</span>
+</pre>
+
+<!-- ── 4. Knowledge Base ── -->
+<h2 id="kb">4. Knowledge Base Design</h2>
+
+<p><strong>Scope:</strong> Project-specific. Each repository gets its own <code>.uni-dev/</code> directory containing SQLite, ChromaDB, and graph data.</p>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>tree-sitter Parsers</h4>
+    <p>Source code parsed into structured JSON via plugin-based language parsers. Shipped: <strong>Java</strong> + <strong>Node.js</strong>.</p>
+  </div>
+  <div class="card">
+    <h4>SQLite (8 tables)</h4>
+    <p>Relational store for modules, classes, methods, endpoints, DB tables/columns, UI components.</p>
+  </div>
+  <div class="card">
+    <h4>ChromaDB (14 indexes)</h4>
+    <p>Embedding + BM25 keyword indexes for semantic and exact search across code, specs, and docs.</p>
+  </div>
+  <div class="card">
+    <h4>NetworkX Graph</h4>
+    <p>8 node types, 11+3 edge types. Dependency graph for migration planning.</p>
+  </div>
+</div>
+
+<h3>4.1 SQLite Schema (8 Tables)</h3>
+
+<table>
+  <thead>
+    <tr><th>Table</th><th>Purpose</th><th>Key Columns</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>modules</code></td><td>Top-level source modules</td><td>id, name, path, language, type</td></tr>
+    <tr><td><code>classes</code></td><td>Classes / components</td><td>id, name, module_id, type, annotations, file_path</td></tr>
+    <tr><td><code>methods</code></td><td>Methods / functions</td><td>id, name, class_id, params, return_type, annotations, body_hash</td></tr>
+    <tr><td><code>api_endpoints</code></td><td>REST API endpoints</td><td>id, method_id, http_method, path, request_schema, response_schema, auth_required</td></tr>
+    <tr><td><code>db_tables</code></td><td>Database tables</td><td>id, name, schema, engine</td></tr>
+    <tr><td><code>db_columns</code></td><td>Table columns</td><td>id, table_id, name, type, nullable, default, fk_ref</td></tr>
+    <tr><td><code>frontend_components</code></td><td>Vue/Cocos components</td><td>id, name, path, type, api_calls, props</td></tr>
+    <tr><td><code>auth_permissions</code></td><td>Permission annotations</td><td>id, method_id, permission, role</td></tr>
+  </tbody>
+</table>
+
+<h3>4.2 ChromaDB Indexes (14)</h3>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Index</th><th>Content</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td><code>code_java_controller</code></td><td>Java controller source</td><td>"What endpoints exist?"</td></tr>
+    <tr><td>2</td><td><code>code_java_service</code></td><td>Java service source</td><td>"How does X work?"</td></tr>
+    <tr><td>3</td><td><code>code_java_entity</code></td><td>Java entity source</td><td>"What fields in User?"</td></tr>
+    <tr><td>4</td><td><code>code_java_mapper</code></td><td>Mapper XML source</td><td>"What custom SQL?"</td></tr>
+    <tr><td>5</td><td><code>code_typescript_admin</code></td><td>Vue admin source</td><td>Frontend API usage</td></tr>
+    <tr><td>6</td><td><code>code_typescript_game</code></td><td>Cocos game source</td><td>Game client API usage</td></tr>
+    <tr><td>7</td><td><code>specs_api</code></td><td>Generated OpenAPI specs</td><td>"Exact response shape?"</td></tr>
+    <tr><td>8</td><td><code>specs_business_logic</code></td><td>Generated method docs</td><td>"How does compute() work?"</td></tr>
+    <tr><td>9</td><td><code>specs_data_model</code></td><td>Generated entity specs</td><td>"Columns in users table?"</td></tr>
+    <tr><td>10</td><td><code>specs_auth</code></td><td>Permission matrix</td><td>"Which permissions?"</td></tr>
+    <tr><td>11</td><td><code>specs_config</code></td><td>Config catalog</td><td>"What does JWT_KEY control?"</td></tr>
+    <tr><td>12</td><td><code>db_schema</code></td><td>Table DDL</td><td>Database structure</td></tr>
+    <tr><td>13</td><td><code>project_docs</code></td><td>Documentation</td><td>"How to deploy?"</td></tr>
+    <tr><td>14</td><td><code>migration_checklists</code></td><td>Per-module checklists</td><td>"What's the migration status?"</td></tr>
+  </tbody>
+</table>
+
+<h3>4.3 NetworkX Code Graph</h3>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>Node Types (8)</h4>
+    <p><code>Module</code>, <code>Class</code>, <code>Method</code>, <code>APIEndpoint</code>,<br>
+    <code>DBTable</code>, <code>DBColumn</code>, <code>VueComponent</code>, <code>CocosComponent</code></p>
+  </div>
+  <div class="card">
+    <h4>Edge Types (11 + 3 migration)</h4>
+    <p><code>HAS_METHOD</code>, <code>CALLS</code>, <code>INJECTS</code>, <code>IMPLEMENTS</code>, <code>EXTENDS</code>, <code>ROUTES_TO</code>, <code>MAPS_TO</code>, <code>FK_TO</code>, <code>API_CALLER</code>, <code>PERMITS</code>, <code>IMPORTS</code></p>
+    <p style="color:var(--yellow)"><code>MIGRATES_TO</code>, <code>BLOCKED_BY</code>, <code>VERIFIED_AGAINST</code></p>
+  </div>
+</div>
+
+<h3>4.4 MCP Server (20 Tools, 5 Categories)</h3>
+
+<table>
+  <thead>
+    <tr><th>Category</th><th>Tools</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Code Exploration</strong></td>
+      <td><code>search_code</code>, <code>get_method_body</code>, <code>get_class_structure</code>, <code>find_endpoints</code>, <code>find_usages</code></td>
+    </tr>
+    <tr>
+      <td><strong>Spec Retrieval</strong></td>
+      <td><code>get_api_contract</code>, <code>get_business_logic_doc</code>, <code>verify_contract</code>, <code>compare_api_responses</code></td>
+    </tr>
+    <tr>
+      <td><strong>Data Model</strong></td>
+      <td><code>get_entity_spec</code>, <code>get_db_schema</code>, <code>get_column_info</code>, <code>trace_fk_chain</code></td>
+    </tr>
+    <tr>
+      <td><strong>Auth &amp; Config</strong></td>
+      <td><code>get_permission_matrix</code>, <code>get_config_value</code>, <code>get_config_catalog</code></td>
+    </tr>
+    <tr>
+      <td><strong>Operations</strong></td>
+      <td><code>get_migration_checklist</code>, <code>get_dependency_graph</code>, <code>get_migration_status</code>, <code>run_test_suite</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>4.5 Spec Generators (6 generators → 4 direct MCP tools)</h3>
+
+<table>
+  <thead>
+    <tr><th>Generator</th><th>Input</th><th>Output</th><th>MCP Tool</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>api_contract_generator</code></td>
+      <td>Controller/Route AST</td>
+      <td>OpenAPI 3.0 YAML</td>
+      <td><code>get_api_contract</code> ✓</td>
+    </tr>
+    <tr>
+      <td><code>business_logic_doc</code></td>
+      <td>Service AST</td>
+      <td>Markdown pseudo-code</td>
+      <td><code>get_business_logic_doc</code> ✓</td>
+    </tr>
+    <tr>
+      <td><code>data_model_extractor</code></td>
+      <td>Entity + DB schema</td>
+      <td>YAML model spec</td>
+      <td>→ consumed by <code>get_entity_spec</code></td>
+    </tr>
+    <tr>
+      <td><code>auth_matrix_generator</code></td>
+      <td>Permission annotations</td>
+      <td>Permission matrix YAML</td>
+      <td><code>get_permission_matrix</code> ✓</td>
+    </tr>
+    <tr>
+      <td><code>config_catalog</code></td>
+      <td>YAML/.env files</td>
+      <td>Config catalog YAML</td>
+      <td>→ consumed by <code>get_config_value</code></td>
+    </tr>
+    <tr>
+      <td><code>migration_checklist</code></td>
+      <td>Module + dep graph</td>
+      <td>Prioritized checklist MD</td>
+      <td><code>get_migration_checklist</code> ✓</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ── 5. Parser Extension System ── -->
+<h2 id="parsers">5. Parser Extension System</h2>
+
+<p>
+  <span class="badge badge-green">Plugin Architecture</span>
+  Each language parser is a standalone plugin implementing the <code>ParserPlugin</code> interface.
+  Plugins are discovered via Python entry points and loaded on demand.
+</p>
+
+<h3>ParserPlugin Interface</h3>
+
+<pre>
+<span class="keyword">class</span> <span class="type">ParserPlugin</span>(ABC):
+    <span class="comment">"""Base class for all language parsers."""</span>
+
+    <span class="func">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="func">language</span>(<span class="keyword">self</span>) <span class="error">→</span> <span class="type">str</span>:
+        <span class="comment">"""Return language identifier: 'java', 'typescript', etc."""</span>
+        ...
+
+    <span class="func">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="func">detect</span>(<span class="keyword">self</span>, file_path: <span class="type">str</span>) <span class="error">→</span> <span class="type">bool</span>:
+        <span class="comment">"""Return True if this parser should handle the file."""</span>
+        ...
+
+    <span class="func">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="func">parse</span>(<span class="keyword">self</span>, file_path: <span class="type">str</span>, source: <span class="type">str</span>) <span class="error">→</span> <span class="type">ParseResult</span>:
+        <span class="comment">"""Parse source code into structured JSON."""</span>
+        ...
+</pre>
+
+<h3>Shipped Parsers</h3>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>Java / Spring Boot</h4>
+    <p><code>unicore-parser-java</code></p>
+    <ul>
+      <li><code>ControllerParser</code> — extracts <code>@RestController</code>, <code>@GetMapping</code>, etc.</li>
+      <li><code>ServiceParser</code> — extracts <code>@Service</code>, method signatures</li>
+      <li><code>EntityParser</code> — extracts <code>@Entity</code>, <code>@Column</code>, JPA annotations</li>
+      <li><code>MapperParser</code> — extracts MyBatis XML mapper queries</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Node.js / Express / NestJS</h4>
+    <p><code>unicore-parser-nodejs</code></p>
+    <ul>
+      <li><code>RouteParser</code> — extracts Express <code>router.get()</code>, NestJS <code>@Get()</code></li>
+      <li><code>ServiceParser</code> — extracts service classes and methods</li>
+      <li><code>ModelParser</code> — extracts Sequelize/TypeORM model definitions</li>
+      <li><code>MiddlewareParser</code> — extracts auth middleware chains</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ── 6. Workflow Pipeline ── -->
+<h2 id="orchestrator">6. Workflow Pipeline</h2>
+
+<h3>6.1 Pipeline Flow</h3>
+
+<pre>
+<span class="comment">Issue/PR Received</span>
+       │
+       ▼
+<span class="comment">┌───────────────────────┐</span>
+<span class="comment">│ Classification Router │ ◄── LLM classifies issue type</span>
+<span class="comment">│ (code routes)         │     dict lookup → workflow branch</span>
+<span class="comment">└───────┬───────────────┘</span>
+        │
+    <span class="edge">───┼───</span> <span class="label">add_feature</span>   → DomainDesigner → SpecWriter → TestGenerator → CodeGenerator
+    <span class="edge">───┼───</span> <span class="label">update_api</span>    → SpecWriter                    → TestGenerator → CodeGenerator
+    <span class="edge">───┼───</span> <span class="label">remove_feature</span> → DomainDesigner → SpecWriter                    → CodeGenerator
+    <span class="edge">───┴───</span> <span class="label">refactor</span>      → DomainDesigner → SpecWriter → TestGenerator → CodeGenerator
+        │
+        ▼
+<span class="comment">┌────────────────────┐</span>
+<span class="comment">│ Verification Gate  │</span>
+<span class="comment">│ Pure Python        │</span>
+<span class="comment">│ MCP compare +      │</span>
+<span class="comment">│ verify_contract +  │</span>
+<span class="comment">│ test exit code     │</span>
+<span class="comment">└──┬───────────┬─────┘</span>
+   <span class="gate">│ pass       │ fail</span>
+   ▼            ▼
+<span class="comment">┌──────────┐ ┌───────────────────┐</span>
+<span class="comment">│ Reviewer │ │ Retry Controller  │◄── attempts &lt; 3?</span>
+<span class="comment">│ Document │ │ Pure Python       │</span>
+<span class="comment">└────┬─────┘ └──┬──────────┬─────┘</span>
+     ▼         <span class="loop">retry</span>       <span class="fail">escalate</span>
+<span class="comment">  [END]      │(loop)      ▼</span>
+     <span class="edge">◄───────────┘     <span class="fail">[END: Human Review]</span></span>
+</pre>
+
+<h3>6.2 Orchestrator Configuration</h3>
+
+<pre>
+<span class="keyword">from</span> deepagents <span class="keyword">import</span> create_deep_agent
+<span class="keyword">from</span> uni_dev.core.graph <span class="keyword">import</span> compile_pipeline_graph
+
+<span class="comment"># The main deepagent wraps the deterministic graph as a sub-agent</span>
+<span class="comment"># Sub-agents for creative work are LLM-powered</span>
+
+pipeline_graph = compile_pipeline_graph()
+
+agent = create_deep_agent(
+    model=<span class="string">"anthropic:claude-sonnet-4-6"</span>,
+    system_prompt=<span class="string">"""
+You are uni-dev, a backend development automation framework.
+You follow DDD → SDD → TDD methodology.
+Always query the Knowledge Base before making decisions.
+Defer to deterministic nodes (verification, retry, routing) — do not override them.
+    """</span>,
+    subagents=[
+        domain_designer_subagent,
+        spec_writer_subagent,
+        code_generator_subagent,
+        test_generator_subagent,
+        reviewer_subagent,
+        <span class="comment"># The deterministic pipeline runs inside a CompiledSubAgent</span>
+        CompiledSubAgent(
+            name=<span class="string">"pipeline-controller"</span>,
+            description=<span class="string">"Deterministic workflow controller. Handles verification, retry, and routing."</span>,
+            runnable=pipeline_graph,
+        ),
+    ],
+    skills=[<span class="string">"skills/backend-dev/"</span>],
+)
+</pre>
+
+<!-- ── 7. LLM Sub-Agents ── -->
+<h2 id="agents">7. LLM Sub-Agents</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <h4><span class="badge badge-mauve">domain-designer</span></h4>
+    <p style="color:var(--yellow);font-size:0.82rem">DDD Phase</p>
+    <p>Identifies entities, aggregates, value objects, and bounded contexts from the issue description and existing codebase.</p>
+    <p><strong>Tools:</strong> <code>search_code</code>, <code>get_class_structure</code>, <code>get_dependency_graph</code></p>
+    <p><strong>Output:</strong> Domain model YAML</p>
+  </div>
+  <div class="card">
+    <h4><span class="badge badge-blue">spec-writer</span></h4>
+    <p style="color:var(--yellow);font-size:0.82rem">SDD Phase</p>
+    <p>Writes or updates OpenAPI 3.0 YAML contracts based on the domain model. The spec is the source of truth.</p>
+    <p><strong>Tools:</strong> <code>get_api_contract</code>, <code>get_entity_spec</code>, filesystem tools</p>
+    <p><strong>Output:</strong> OpenAPI YAML</p>
+  </div>
+  <div class="card">
+    <h4><span class="badge badge-green">code-generator</span></h4>
+    <p style="color:var(--yellow);font-size:0.82rem">TDD Phase</p>
+    <p>Implements code conforming to the spec. Uses test failures to guide corrections.</p>
+    <p><strong>Tools:</strong> filesystem tools, shell (for builds/tests), <code>get_business_logic_doc</code></p>
+    <p><strong>Output:</strong> Source files</p>
+  </div>
+  <div class="card">
+    <h4><span class="badge badge-teal">test-generator</span></h4>
+    <p style="color:var(--yellow);font-size:0.82rem">TDD Phase</p>
+    <p>Generates contract tests and unit tests from specs. Tests are written before implementation.</p>
+    <p><strong>Tools:</strong> <code>get_api_contract</code>, <code>verify_contract</code>, shell</p>
+    <p><strong>Output:</strong> Test files</p>
+  </div>
+  <div class="card" style="grid-column: 1 / -1;">
+    <h4><span class="badge badge-yellow">reviewer</span></h4>
+    <p style="color:var(--yellow);font-size:0.82rem">Post-Verification</p>
+    <p>Reviews implementation against spec, generates documentation updates, identifies gaps.</p>
+    <p><strong>Tools:</strong> All MCP tools, <code>compare_api_responses</code>, <code>get_migration_checklist</code></p>
+    <p><strong>Output:</strong> Review report + doc updates</p>
+  </div>
+</div>
+
+<!-- ── 8. Security ── -->
+<h2 id="security">8. Security Filter</h2>
+
+<p>
+  <span class="badge badge-red">Critical</span>
+  Middleware that intercepts tool call arguments and results to redact sensitive information
+  before it reaches logs or the knowledge base.
+</p>
+
+<pre>
+<span class="keyword">class</span> <span class="type">LogFilter</span>:
+    <span class="comment">"""Redact PII, secrets, and credentials from agent I/O."""</span>
+
+    PATTERNS: <span class="type">list</span>[<span class="type">tuple</span>[<span class="type">str</span>, <span class="type">str</span>]] = [
+        (<span class="string">r'Bearer\s+[A-Za-z0-9\-._~+/=]+'</span>,    <span class="string">'Bearer &lt;REDACTED&gt;'</span>),
+        (<span class="string">r'api[_-]?key[=:]\s*[^\s&]+'</span>,         <span class="string">'api_key=&lt;REDACTED&gt;'</span>),
+        (<span class="string">r'password[=:]\s*[^\s&]+'</span>,            <span class="string">'password=&lt;REDACTED&gt;'</span>),
+        (<span class="string">r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'</span>, <span class="string">'&lt;EMAIL&gt;'</span>),
+        (<span class="string">r'postgresql://[^@]+@'</span>,                <span class="string">'postgresql://&lt;CREDENTIALS&gt;@'</span>),
+        (<span class="string">r'mongodb://[^@]+@'</span>,                    <span class="string">'mongodb://&lt;CREDENTIALS&gt;@'</span>),
+        (<span class="string">r'REDIS_URL[=:]\s*[^\s]+'</span>,             <span class="string">'REDIS_URL=&lt;REDACTED&gt;'</span>),
+    ]
+
+    <span class="keyword">def</span> <span class="func">filter_text</span>(<span class="keyword">self</span>, text: <span class="type">str</span>) <span class="error">→</span> <span class="type">str</span>:
+        <span class="keyword">for</span> pattern, replacement <span class="keyword">in</span> <span class="keyword">self</span>.PATTERNS:
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+        <span class="keyword">return</span> text
+
+    <span class="comment"># Plugs into deepagent middleware as a tool-call wrapper</span>
+    <span class="comment"># All tool args and results pass through filter before logging/KB insertion</span>
+</pre>
+
+<!-- ── 9. Webhooks ── -->
+<h2 id="webhooks">9. Webhooks &amp; CLI</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>CLI Commands</h4>
+    <pre style="margin:0;background:transparent;border:none;padding:0;">
+<span class="comment"># Scaffold knowledge base for a project</span>
+$ uni-dev init /path/to/project
+
+<span class="comment"># Start webhook listener</span>
+$ uni-dev listen --port 8080
+
+<span class="comment"># Run pipeline for a single issue</span>
+$ uni-dev run "Add user avatar upload endpoint"
+
+<span class="comment"># Show migration status dashboard</span>
+$ uni-dev status</pre>
+  </div>
+  <div class="card">
+    <h4>Webhook Endpoints</h4>
+    <table style="margin:0">
+      <tr><td><code>POST /webhook/github</code></td><td>GitHub Issues / PR events</td></tr>
+      <tr><td><code>POST /webhook/codeberg</code></td><td>Codeberg / Tea events</td></tr>
+      <tr><td><code>GET /health</code></td><td>Health check</td></tr>
+    </table>
+    <p style="margin-top:12px">Each handler validates the payload, extracts the issue/PR content, and enqueues it to the orchestrator.</p>
+  </div>
+</div>
+
+<!-- ── 10. Implementation Phases ── -->
+<h2 id="phases">10. Implementation Phases</h2>
+
+<div class="step active">
+  <h3>Phase 1: Deterministic Core <span class="badge badge-red">P0</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+  <p>Build the 4 immutable LangGraph nodes and the compiled workflow StateGraph. These are ~50 lines each, pure Python, zero LLM — they form the non-overridable backbone that all LLM agents must obey.</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li><code>core/verification_gate.py</code></li>
+    <li><code>core/retry_controller.py</code></li>
+    <li><code>core/migration_stepper.py</code></li>
+    <li><code>core/classification_router.py</code></li>
+    <li><code>core/graph.py</code> — compiled StateGraph with conditional edges</li>
+    <li>Unit tests for each node</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1 week</p>
+</div>
+
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 2: Parser Extension System <span class="badge badge-red">P0</span> <span class="badge badge-green">M1 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+  <p>Build the abstract parser interface, plugin registry, and two initial parser implementations (Java/Spring Boot and Node.js/Express/NestJS).</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li>&#x2705; <code>parsers/base.py</code> — <code>ParserPlugin</code> abstract class</li>
+    <li>&#x2705; <code>parsers/registry.py</code> — entry-point based plugin discovery</li>
+    <li>&#x2705; <code>parsers/java/</code> — controller, service, entity, mapper parsers</li>
+    <li>&#x25CB; <code>parsers/nodejs/</code> — route, service, model, middleware parsers (M3)</li>
+    <li>&#x2705; 79 unit tests across 5 test files</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commit:</strong> <code>d57689e</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/1">#1</a></p>
+</div>
+
+<div class="step active">
+  <h3>Phase 3: Knowledge Base Store <span class="badge badge-red">P0</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+  <p>SQLite schema, ChromaDB collections, NetworkX graph builder. Populated by parser output.</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li><code>store/sqlite_store.py</code> — 8 table schema + CRUD</li>
+    <li><code>store/chroma_indexes.py</code> — 14 collection-backed indexes</li>
+    <li><code>store/code_graph.py</code> — NetworkX graph builder</li>
+    <li><code>uni-dev init</code> command</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1 week</p>
+</div>
+
+<div class="step planned">
+  <h3>Phase 4: Spec Generators + MCP Server <span class="badge badge-yellow">P1</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+  <p>6 generators consuming KB data, producing specs. MCP server exposing 20 tools.</p>
+  <p><strong>Estimate:</strong> ~1.5 weeks</p>
+</div>
+
+<div class="step planned">
+  <h3>Phase 5: LLM Sub-Agents <span class="badge badge-yellow">P1</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+  <p>Define 5 specialized sub-agents for the DDD→SDD→TDD pipeline, wired into the deepagent orchestrator.</p>
+  <p><strong>Estimate:</strong> ~1.5 weeks</p>
+</div>
+
+<div class="step planned">
+  <h3>Phase 6: Security Filter <span class="badge badge-yellow">P1</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+  <p>Log filter middleware for PII/secret redaction. Plugs into deepagent tool wrapper.</p>
+  <p><strong>Estimate:</strong> ~3 days</p>
+</div>
+
+<div class="step future">
+  <h3>Phase 7: Webhooks + CLI <span class="badge badge-blue">P2</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+  <p>FastAPI webhook server for GitHub/Codeberg. Full CLI surface.</p>
+  <p><strong>Estimate:</strong> ~1 week</p>
+</div>
+
+<!-- ── M1 Conclusion ── -->
+<h2 id="m1-conclusion">M1 Retrospective — Parser System</h2>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <p><strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a> — independent Git repository under the uni-dev workspace.</p>
+  <table>
+    <thead><tr><th>Component</th><th>File(s)</th><th>Tests</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Abstract interface</strong></td><td><code>parsers/base.py</code> — 6 dataclass models, <code>ParserPlugin</code> ABC</td><td>15</td></tr>
+      <tr><td><strong>Plugin registry</strong></td><td><code>parsers/registry.py</code> — entry-point discovery, load/find/reset</td><td>10</td></tr>
+      <tr><td><strong>Java Controller</strong></td><td><code>parsers/java/controller.py</code> — @RestController, auth extraction</td><td>11</td></tr>
+      <tr><td><strong>Java Service</strong></td><td><code>parsers/java/service.py</code> — @Service, method body hashing</td><td>9</td></tr>
+      <tr><td><strong>Java Entity</strong></td><td><code>parsers/java/entity.py</code> — @Entity, constraints, indexes</td><td>11</td></tr>
+      <tr><td><strong>Java Mapper</strong></td><td><code>parsers/java/mapper.py</code> — MyBatis XML + interface annotations</td><td>13</td></tr>
+      <tr><td><strong>Package init</strong></td><td><code>__init__.py</code> at <code>uni_kb/</code>, <code>parsers/</code>, <code>nodejs/</code> (stub)</td><td>—</td></tr>
+      <tr><td><strong>Spec (SDD)</strong></td><td><code>specs/parser-system.yaml</code></td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total</strong></td><td><strong>79</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead><tr><th style="width:40px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Controller class-level <code>@RequestMapping</code> matched as endpoint</td>
+        <td>Regex <code>.*?</code> backtracks past <code>class</code> keyword, anchoring at first method <code>public</code></td>
+        <td>Replaced <code>.*?</code> with tempered greedy token <code>(?:(?!\bclass\b|interface\b|enum\b).)*?</code></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>consumes</code> field leaked path string (<code>/{id}</code>)</td>
+        <td><code>_extract_annotation_value()</code> bare-string fallback returned positional arg for named-key lookups</td>
+        <td>Added <code>allow_positional</code> flag — only enabled for <code>value</code>/<code>path</code> keys</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Service method names were <code>None</code>, params empty</td>
+        <td>Regex capture group indices off by one (group 3 vs 4 for method name)</td>
+        <td>Corrected group(3)→group(4) for method name, group(4)→group(5) for params, group(5)→group(6) for throws</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Entity <code>@Transient</code> field not skipped; picked up preceding field's annotations</td>
+        <td>Fixed 200-char window included previous field declarations; <code>@Transient</code> was missing from annotation regex</td>
+        <td>Replaced window with <code>rfind(";")</code> bounding to previous field end; added <code>Transient</code> to annotation alternation</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>camel_to_snake("ID")</code> produced <code>i_d</code> instead of <code>id</code></td>
+        <td>Regex <code>([A-Z])</code> inserted underscores between consecutive uppercase letters</td>
+        <td>Two-phase conversion: first handle acronyms (<code>([A-Z]+)([A-Z][a-z])</code>), then regular camelCase</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Mapper <code>@Insert("INSERT INTO users (email) VALUES (#{e})")</code> — SQL parens broke regex</td>
+        <td><code>[^)]*</code> stopped at first <code>)</code> inside SQL string, breaking annotation and param parsing</td>
+        <td>Split into two-phase: regex finds method declarations, then extracts preceding <code>@Annotation</code> names from bounded text window</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Registry crashed on <code>nodejs</code> entry point with no <code>register()</code> function</td>
+        <td><code>ep.load()</code> in <code>discover()</code> raised <code>AttributeError</code>, not caught</td>
+        <td>Wrapped <code>ep.load()</code> in try/except; added stub <code>nodejs/__init__.py</code> with empty <code>register()</code></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Registry tests failed because <code>get()</code> auto-loaded real parsers, mixing with test fakes</td>
+        <td><code>get()</code>, <code>all_plugins()</code>, <code>supported_languages()</code> all called <code>load_all()</code></td>
+        <td>Removed auto-load from query methods; only <code>find()</code> triggers discovery</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>CI failed on Python 3.11 — <code>ModuleNotFoundError: importlib_metadata</code></td>
+        <td><code>importlib_metadata</code> backport not declared as conditional dependency</td>
+        <td>Added <code>"importlib-metadata>=5.0; python_version &lt; '3.12'"</code> to <code>pyproject.toml</code></td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>CI lint job installed all project deps (chromadb, onnxruntime) just to run ruff</td>
+        <td><code>uv run --with ruff</code> discovers <code>pyproject.toml</code> and installs full project</td>
+        <td>Switched to <code>uvx ruff check src/</code> — standalone runner, zero project deps</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Branch &amp; CI/CD Configuration</h4>
+  <pre style="margin:0;background:transparent;border:none;padding:0;">
+<span class="comment"># Branch strategy (per AGENTS.md)</span>
+main                       <span class="comment">← stable, fast-forward from develop</span>
+develop                    <span class="comment">← integration, PR target</span>
+feat/parsers/m1-*         <span class="comment">← feature work (merged to develop via squash PR)</span>
+fix/ci/*                   <span class="comment">← bugfix work</span>
+
+<span class="comment"># CI/CD (.github/workflows/ci.yml)</span>
+<span class="comment"># Triggers: push + pull_request on main, develop</span>
+lint:   <span class="func">uvx ruff check src/</span>                     <span class="comment"># &lt;5s</span>
+test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>  <span class="comment"># 3.11, 3.12, 3.13</span></pre>
+
+  <p style="margin-top:12px;">
+    <strong>SSH remote:</strong> <code>git@github.com:admin-init/uni-kb.git</code> — bypasses OAuth token scope issues for workflow file pushes.
+  </p>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>Regex-based parsing is fragile.</strong> Nested parens, cross-method matching, and class vs. method ambiguity caused most bugs. Consider tree-sitter AST for complex parsing tasks.</li>
+    <li><strong>Test fixtures must be realistic.</strong> SQL strings with <code>()</code>, annotations with <code>hasRole('ADMIN')</code> — these edge cases only surfaced through thoughtful test data.</li>
+    <li><strong>Registry auto-load is a side effect.</strong> Query methods should not trigger discovery — <code>find()</code> is the only operation that needs full scan.</li>
+    <li><strong>Token scope matters.</strong> HTTPS pushes of workflow files require <code>workflow</code> OAuth scope. SSH bypasses this entirely.</li>
+    <li><strong>uvx for lint.</strong> <code>uv run --with &lt;tool&gt;</code> installs the whole project; <code>uvx</code> runs the tool in isolation.</li>
+    <li><strong>Conditional deps are real.</strong> <code>importlib_metadata</code> is available on Python &ge; 3.12 as stdlib, but 3.11 needs the backport explicitly.</li>
+  </ul>
+</div>
+
+<!-- ── 11. Dependency Stack ── -->
+<h2 id="deps">11. Dependency Stack</h2>
+
+<pre>
+<span class="comment"># pyproject.toml</span>
+[project]
+name = <span class="string">"uni-dev"</span>
+requires-python = <span class="string">">=3.11"</span>
+dependencies = [
+    <span class="string">"deepagents>=0.5.3"</span>,       <span class="comment"># Main agent harness (low workload)</span>
+    <span class="string">"langgraph"</span>,                <span class="comment"># StateGraph runtime (key nodes)</span>
+    <span class="string">"langchain"</span>,                <span class="comment"># Agent framework</span>
+    <span class="string">"langchain-openai"</span>,         <span class="comment"># Model provider (configurable)</span>
+    <span class="string">"langchain-anthropic"</span>,      <span class="comment"># Alternative provider</span>
+    <span class="string">"chromadb"</span>,                 <span class="comment"># Vector + BM25 indexes</span>
+    <span class="string">"networkx"</span>,                 <span class="comment"># Code dependency graph</span>
+    <span class="string">"tree-sitter"</span>,              <span class="comment"># AST parsing</span>
+    <span class="string">"tree-sitter-java"</span>,         <span class="comment"># Java grammar</span>
+    <span class="string">"tree-sitter-typescript"</span>,   <span class="comment"># TS/JS grammar</span>
+    <span class="string">"sqlite-utils"</span>,             <span class="comment"># SQLite helpers</span>
+    <span class="string">"pyyaml"</span>,                   <span class="comment"># YAML config + spec output</span>
+    <span class="string">"click"</span>,                    <span class="comment"># CLI framework</span>
+    <span class="string">"mcp>=1.0.0"</span>,               <span class="comment"># MCP SDK</span>
+    <span class="string">"fastapi"</span>,                  <span class="comment"># Webhook server</span>
+    <span class="string">"uvicorn"</span>,                  <span class="comment"># ASGI server</span>
+]
+
+[project.optional-dependencies]
+dev = [
+    <span class="string">"pytest"</span>,
+    <span class="string">"pytest-asyncio"</span>,
+]
+
+[project.entry-points."uni_dev.parsers"]
+java   = <span class="string">"uni_dev.knowledge_base.parsers.java:register"</span>
+nodejs = <span class="string">"uni_dev.knowledge_base.parsers.nodejs:register"</span>
+</pre>
+
+<!-- ── Footer ── -->
+<div class="footnote">
+  <p>
+    <strong>uni-dev</strong> — Universal Backend Development via Multi-Agent Orchestration<br>
+    Catppuccin Mocha Theme · Generated 2026-06-13
+  </p>
+  <p style="margin-top:8px">
+    Tech Stack: <span class="badge badge-green">deepagents</span>
+    <span class="badge badge-blue">langgraph</span>
+    <span class="badge badge-mauve">chromadb</span>
+    <span class="badge badge-yellow">networkx</span>
+    <span class="badge badge-teal">tree-sitter</span>
+    <span class="badge badge-red">mcp</span>
+  </p>
+</div>
+
+</div>
+</body>
+</html>
