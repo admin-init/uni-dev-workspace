@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uni-dev — Milestone Retrospectives</title>
+<style>
+/* ── Catppuccin Mocha Variables ── */
+:root {
+  --bg: #1e1e2e;
+  --bg-surface: #181825;
+  --surface0: #313244;
+  --surface1: #45475a;
+  --surface2: #585b70;
+  --text: #cdd6f4;
+  --subtext0: #a6adc8;
+  --subtext1: #bac2de;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --mauve: #cba6f7;
+  --pink: #f5c2e7;
+  --teal: #94e2d5;
+  --peach: #fab387;
+  --sky: #89dceb;
+  --lavender: #b4befe;
+  --border: var(--surface1);
+  --radius: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+header { text-align: center; padding: 48px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
+h1 { font-size: 2rem; color: var(--mauve); margin-bottom: 8px; }
+h1 span { color: var(--blue); }
+.tagline { color: var(--subtext0); font-size: 0.95rem; }
+
+h2 { font-size: 1.35rem; color: var(--pink); margin: 40px 0 16px; padding-bottom: 6px; border-bottom: 1px solid var(--surface1); }
+h3 { font-size: 1.1rem; color: var(--teal); margin: 28px 0 12px; }
+h4 { font-size: 0.95rem; color: var(--yellow); margin: 20px 0 8px; }
+
+p { margin-bottom: 12px; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Badges ── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 4px; }
+.badge-blue  { background: rgba(137, 180, 250, 0.15); color: var(--blue); }
+.badge-green { background: rgba(166, 227, 161, 0.15); color: var(--green); }
+.badge-red   { background: rgba(243, 139, 168, 0.15); color: var(--red); }
+.badge-yellow{ background: rgba(249, 226, 175, 0.15); color: var(--yellow); }
+.badge-mauve { background: rgba(203, 166, 247, 0.15); color: var(--mauve); }
+.badge-teal  { background: rgba(148, 226, 213, 0.15); color: var(--teal); }
+
+/* ── Cards ── */
+.card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.card h4 { margin-top: 0; color: var(--lavender); }
+
+/* ── Tables ── */
+table { width: 100%; border-collapse: collapse; font-size: 0.89rem; }
+th { background: var(--surface0); color: var(--blue); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--surface2); white-space: nowrap; }
+td { padding: 9px 14px; border-bottom: 1px solid var(--surface1); vertical-align: top; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+tr:last-child td { border-bottom: none; }
+
+/* ── Code / Pre ── */
+code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; font-size: 0.85rem; background: var(--surface0); color: var(--peach); padding: 2px 6px; border-radius: 4px; }
+pre { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; overflow-x: auto; font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; font-size: 0.82rem; line-height: 1.5; margin-bottom: 16px; color: var(--text); }
+pre .comment { color: var(--surface2); }
+pre .func    { color: var(--blue); }
+
+ul, ol { padding-left: 24px; margin-bottom: 12px; }
+li { margin-bottom: 4px; }
+
+hr { border: none; border-top: 1px solid var(--surface1); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>uni-dev <span>Retrospectives</span></h1>
+  <p class="tagline">Post-milestone conclusions — what was done, what broke, what was learned</p>
+</header>
+
+<!-- ── M1 ── -->
+<h2 id="m1-retro">M1 Retrospective — Parser System</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>d57689e</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/1">#1</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 79 &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Abstract interface</strong></td><td><code>parsers/base.py</code> — 6 dataclass models, <code>ParserPlugin</code> ABC</td><td>15</td></tr>
+      <tr><td><strong>Plugin registry</strong></td><td><code>parsers/registry.py</code> — entry-point discovery, load/find/reset</td><td>10</td></tr>
+      <tr><td><strong>Java Controller</strong></td><td><code>parsers/java/controller.py</code> — @RestController, auth extraction</td><td>11</td></tr>
+      <tr><td><strong>Java Service</strong></td><td><code>parsers/java/service.py</code> — @Service, method body hashing</td><td>9</td></tr>
+      <tr><td><strong>Java Entity</strong></td><td><code>parsers/java/entity.py</code> — @Entity, constraints, indexes</td><td>11</td></tr>
+      <tr><td><strong>Java Mapper</strong></td><td><code>parsers/java/mapper.py</code> — MyBatis XML + interface annotations</td><td>13</td></tr>
+      <tr><td><strong>Package init</strong></td><td><code>__init__.py</code> at <code>uni_kb/</code>, <code>parsers/</code>, <code>nodejs/</code> (stub)</td><td>—</td></tr>
+      <tr><td><strong>Spec (SDD)</strong></td><td><code>specs/parser-system.yaml</code></td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total</strong></td><td><strong>79</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Controller class-level <code>@RequestMapping</code> matched as endpoint</td>
+        <td>Regex <code>.*?</code> backtracks past <code>class</code> keyword, anchoring at first method <code>public</code></td>
+        <td>Replaced <code>.*?</code> with tempered greedy token <code>(?:(?!\bclass\b|interface\b|enum\b).)*?</code></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>consumes</code> field leaked path string (<code>/{id}</code>)</td>
+        <td><code>_extract_annotation_value()</code> bare-string fallback returned positional arg for named-key lookups</td>
+        <td>Added <code>allow_positional</code> flag — only enabled for <code>value</code>/<code>path</code> keys</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Service method names were <code>None</code>, params empty</td>
+        <td>Regex capture group indices off by one (group 3 vs 4 for method name)</td>
+        <td>Corrected group(3)&rarr;group(4) for method name, group(4)&rarr;group(5) for params, group(5)&rarr;group(6) for throws</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Entity <code>@Transient</code> field not skipped; picked up previous field's annotations</td>
+        <td>Fixed 200-char window included previous field declarations; <code>@Transient</code> missing from annotation regex</td>
+        <td>Replaced window with <code>rfind(";")</code> bounding to previous field end; added <code>Transient</code> to alternation</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>camel_to_snake("ID")</code> produced <code>i_d</code> instead of <code>id</code></td>
+        <td>Regex <code>([A-Z])</code> inserted underscores between consecutive uppercase letters</td>
+        <td>Two-phase conversion: first handle acronyms (<code>([A-Z]+)([A-Z][a-z])</code>), then regular camelCase</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Mapper <code>@Insert("... VALUES (#{e})")</code> — SQL parens broke regex</td>
+        <td><code>[^)]*</code> stopped at first <code>)</code> inside SQL string, breaking annotation parsing</td>
+        <td>Split into two-phase: regex finds method declarations, then extracts <code>@Annotation</code> names from bounded text window</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Registry crashed on <code>nodejs</code> entry point with no <code>register()</code></td>
+        <td><code>ep.load()</code> in <code>discover()</code> raised <code>AttributeError</code>, not caught</td>
+        <td>Wrapped <code>ep.load()</code> in try/except; added stub <code>nodejs/__init__.py</code> with empty <code>register()</code></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Registry tests failed — <code>get()</code> auto-loaded real parsers, mixing with test fakes</td>
+        <td><code>get()</code>, <code>all_plugins()</code>, <code>supported_languages()</code> all called <code>load_all()</code></td>
+        <td>Removed auto-load from query methods; only <code>find()</code> triggers discovery</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>CI failed on Python 3.11 — <code>ModuleNotFoundError: importlib_metadata</code></td>
+        <td><code>importlib_metadata</code> backport not declared as conditional dependency</td>
+        <td>Added <code>"importlib-metadata>=5.0; python_version &lt; '3.12'"</code> to <code>pyproject.toml</code></td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>CI lint job installed all project deps (chromadb, onnxruntime) for ruff</td>
+        <td><code>uv run --with ruff</code> discovers <code>pyproject.toml</code> and installs full project</td>
+        <td>Switched to <code>uvx ruff check src/</code> — standalone runner, zero project deps</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Branch &amp; CI/CD Configuration</h4>
+  <pre>
+<span class="comment"># Branch strategy</span>
+main                       <span class="comment">&larr; stable, fast-forward from develop</span>
+develop                    <span class="comment">&larr; integration, PR target</span>
+feat/parsers/m1-*         <span class="comment">&larr; feature work (squash PR to develop)</span>
+fix/ci/*                   <span class="comment">&larr; bugfix work</span>
+
+<span class="comment"># CI/CD (.github/workflows/ci.yml)</span>
+lint:   <span class="func">uvx ruff check src/</span>                     <span class="comment"># &lt;5s</span>
+test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>  <span class="comment"># 3.11, 3.12, 3.13</span></pre>
+  <p style="margin-top:8px;"><strong>SSH remote:</strong> <code>git@github.com:admin-init/uni-kb.git</code> &mdash; bypasses OAuth token scope issues for workflow file pushes.</p>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>Regex-based parsing is fragile.</strong> Nested parens, cross-method matching, and class vs. method ambiguity caused most bugs. Consider tree-sitter AST for complex parsing.</li>
+    <li><strong>Test fixtures must be realistic.</strong> SQL strings with <code>()</code>, annotations with <code>hasRole('ADMIN')</code> &mdash; edge cases only surfaced through thoughtful test data.</li>
+    <li><strong>Registry auto-load is a side effect.</strong> Query methods should not trigger discovery &mdash; <code>find()</code> is the only operation that needs full scan.</li>
+    <li><strong>Token scope matters.</strong> HTTPS pushes of workflow files require <code>workflow</code> OAuth scope. SSH bypasses this entirely.</li>
+    <li><strong>uvx for lint.</strong> <code>uv run --with &lt;tool&gt;</code> installs the whole project; <code>uvx</code> runs the tool in isolation.</li>
+    <li><strong>Conditional deps are real.</strong> <code>importlib_metadata</code> is stdlib on Python &ge; 3.12, but 3.11 needs the backport explicitly.</li>
+  </ul>
+</div>
+
+<!-- FUTURE: more milestones appended here -->
+
+</div>
+</body>
+</html>

@@ -314,11 +314,11 @@ def test_verification_gate_fail():
 
 ## Post-Milestone Conclusion
 
-After each milestone completes, write a retrospective inline in `plan.html` under the `M<N> Retrospective` section,
+After each milestone completes, write a retrospective inline in `retrospectives.html` under the `M<N> Retrospective` section,
 formatted with the Catppuccin Mocha theme (cards, tables, badges, <code>&lt;pre&gt;</code> blocks).
 The workspace commit documents what was done, what broke, and what was learned.
 
-### Structure (plan.html HTML)
+### Structure (retrospectives.html HTML)
 
 ```html
 <h2 id="m<N>-retro">M<N> Retrospective — <Milestone Name></h2>
@@ -352,14 +352,28 @@ The workspace commit documents what was done, what broke, and what was learned.
 </div>
 ```
 
+### plan.html Summary Card
+
+Each milestone gets a short summary card in `plan.html` under Implementation Phases linking to the full retrospective:
+
+```html
+<div class="card">
+  <p>
+    <span class="badge badge-green">M<N> Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m<N>-retro">Full retrospective</a>
+  </p>
+</div>
+```
+
 ### Rules
 
-- **One retrospective per milestone.** Append to `plan.html` under the Implementation Phases section; don't overwrite previous ones.
+- **One file for all milestones.** Append each retrospective to `retrospectives.html`; don't create separate files.
 - **Update the phase progress bar** in `plan.html` → `Implementation Phases` (width percentage, green checkmarks).
+- **Add summary card to plan.html** linking to `retrospectives.html#m<N>-retro`.
 - **Commit to workspace** via `docs/retrospective/m<N>-<slug>` branch, squash-merge PR.
 - Include a **Problems & Solutions table** — every bug fixed during the milestone must be documented with root cause and solution.
 - Link the GitHub issue and commit hash.
-- Use the existing `plan.html` CSS: `.card`, `table`, `pre`, `.badge-*` — no new styles needed.
+- Use the existing CSS — no new styles needed.
 
 
 ## CI/CD Setup
