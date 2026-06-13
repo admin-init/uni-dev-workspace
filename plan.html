@@ -864,18 +864,18 @@ $ uni-dev status</pre>
 </div>
 
 <div class="step active" style="border-left-color: var(--green);">
-  <h3>Phase 2: Parser Extension System <span class="badge badge-red">P0</span> <span class="badge badge-green">M1 Done</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+  <h3>Phase 2: Parser Extension System <span class="badge badge-red">P0</span> <span class="badge badge-green">M1 Done</span> <span class="badge badge-green">M3 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
   <p>Build the abstract parser interface, plugin registry, and two initial parser implementations (Java/Spring Boot and Node.js/Express/NestJS).</p>
   <h4>Deliverables</h4>
   <ul>
     <li>&#x2705; <code>parsers/base.py</code> — <code>ParserPlugin</code> abstract class</li>
     <li>&#x2705; <code>parsers/registry.py</code> — entry-point based plugin discovery</li>
     <li>&#x2705; <code>parsers/java/</code> — controller, service, entity, mapper parsers</li>
-    <li>&#x25CB; <code>parsers/nodejs/</code> — route, service, model, middleware parsers (M3)</li>
-    <li>&#x2705; 79 unit tests across 5 test files</li>
+    <li>&#x2705; <code>parsers/nodejs/</code> — route, service, model, middleware parsers</li>
+    <li>&#x2705; 119 unit tests across 9 test files</li>
   </ul>
-  <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commit:</strong> <code>d57689e</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/1">#1</a></p>
+  <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commits:</strong> <code>d57689e</code>, <code>235457a</code> &nbsp;|&nbsp; <strong>Issues:</strong> <a href="https://github.com/admin-init/uni-kb/issues/1">#1</a>, <a href="https://github.com/admin-init/uni-kb/issues/3">#3</a></p>
 </div>
 
 <div class="step active" style="border-left-color: var(--green);">

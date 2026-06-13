@@ -229,6 +229,81 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>  <span
 
 <hr>
 
+<!-- ── M3 ── -->
+<h2 id="m3-retro">M3 Retrospective — Node.js Parsers</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>235457a</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/3">#3</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 119 (79 existing + 40 new) &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Route Parser</strong></td><td><code>nodejs/route.py</code> — Express <code>router.get()</code> + NestJS <code>@Get()/@Post()</code> decorators, auth detection, path joining</td><td>12</td></tr>
+      <tr><td><strong>Service Parser</strong></td><td><code>nodejs/service.py</code> — <code>@Injectable()</code> class detection, method extraction with decorator + TypeScript return type awareness</td><td>9</td></tr>
+      <tr><td><strong>Model Parser</strong></td><td><code>nodejs/model.py</code> — Sequelize <code>define()</code> + TypeORM <code>@Entity()</code>, field extraction, relationships, FK references</td><td>11</td></tr>
+      <tr><td><strong>Middleware Parser</strong></td><td><code>nodejs/middleware.py</code> — JWT verification, role guards, Passport patterns, NestJS guard detection</td><td>8</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total</strong></td><td><strong>40</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>TypeORM <code>@Entity({ name: 'users' })</code> not detected</td>
+        <td>Detection regex only matched <code>@Entity('name')</code> or <code>@Entity()</code>, not object-argument syntax</td>
+        <td>Broadened to <code>@Entity\s*\(</code> — matches any argument form</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>NestJS service methods not extracted — regex stopped at <code>@InjectRepository()</code> decorator</td>
+        <td>Regex <code>(\w+)\s*\(</code> consumed decorator class name as method name</td>
+        <td>Added decorator skip prefix: <code>(?:@\w+\s*\([^)]*\)\s*)*</code> before method name capture</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Empty source produced phantom class/entity from filename stem</td>
+        <td>No empty-source guard in <code>parse()</code> — filename-derived names leaked into result</td>
+        <td>Added <code>if not source.strip(): return ParseResult()</code> at top of each parser's <code>parse()</code></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Express POST endpoint path had trailing slash (<code>/api/users/</code> vs <code>/api/users</code>)</td>
+        <td>Path join of prefix <code>/api/users</code> + method path <code>/</code> produced <code>/api/users/</code></td>
+        <td>Added <code>.rstrip("/") or "/"</code> to <code>_join_paths()</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>JavaScript/TypeScript parsing is fundamentally different from Java.</strong> No annotations in the JVM sense — decorators, middleware chains, and module.exports require entirely different regex patterns.</li>
+    <li><strong>TypeScript return types break method regex.</strong> <code>: Promise&lt;User&gt;</code> after params requires optional type-annotation skipping in the method signature pattern.</li>
+    <li><strong>Empty-source guard is a universal pattern.</strong> Every parser should return empty <code>ParseResult()</code> on blank source. This should be codified in the <code>ParserPlugin</code> base class contract.</li>
+    <li><strong>Sequelize and TypeORM diverge significantly.</strong> Field definitions, table naming, and relationship modeling use completely different syntax. Both need dedicated extraction paths with shared output format.</li>
+  </ul>
+</div>
+
+<hr>
+
 <!-- ── M2 ── -->
 <h2 id="m2-retro">M2 Retrospective — Storage Layer</h2>
 
