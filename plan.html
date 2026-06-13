@@ -920,126 +920,15 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~1 week</p>
 </div>
 
-<!-- ── M1 Conclusion ── -->
+<!-- ── M1 Retrospective → standalone file ── -->
 <h2 id="m1-conclusion">M1 Retrospective — Parser System</h2>
 
 <div class="card">
-  <h4>What Was Done</h4>
-  <p><strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a> — independent Git repository under the uni-dev workspace.</p>
-  <table>
-    <thead><tr><th>Component</th><th>File(s)</th><th>Tests</th></tr></thead>
-    <tbody>
-      <tr><td><strong>Abstract interface</strong></td><td><code>parsers/base.py</code> — 6 dataclass models, <code>ParserPlugin</code> ABC</td><td>15</td></tr>
-      <tr><td><strong>Plugin registry</strong></td><td><code>parsers/registry.py</code> — entry-point discovery, load/find/reset</td><td>10</td></tr>
-      <tr><td><strong>Java Controller</strong></td><td><code>parsers/java/controller.py</code> — @RestController, auth extraction</td><td>11</td></tr>
-      <tr><td><strong>Java Service</strong></td><td><code>parsers/java/service.py</code> — @Service, method body hashing</td><td>9</td></tr>
-      <tr><td><strong>Java Entity</strong></td><td><code>parsers/java/entity.py</code> — @Entity, constraints, indexes</td><td>11</td></tr>
-      <tr><td><strong>Java Mapper</strong></td><td><code>parsers/java/mapper.py</code> — MyBatis XML + interface annotations</td><td>13</td></tr>
-      <tr><td><strong>Package init</strong></td><td><code>__init__.py</code> at <code>uni_kb/</code>, <code>parsers/</code>, <code>nodejs/</code> (stub)</td><td>—</td></tr>
-      <tr><td><strong>Spec (SDD)</strong></td><td><code>specs/parser-system.yaml</code></td><td>—</td></tr>
-      <tr><td colspan="2" style="text-align:right"><strong>Total</strong></td><td><strong>79</strong></td></tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h4>Problems &amp; Solutions</h4>
-  <table>
-    <thead><tr><th style="width:40px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>Controller class-level <code>@RequestMapping</code> matched as endpoint</td>
-        <td>Regex <code>.*?</code> backtracks past <code>class</code> keyword, anchoring at first method <code>public</code></td>
-        <td>Replaced <code>.*?</code> with tempered greedy token <code>(?:(?!\bclass\b|interface\b|enum\b).)*?</code></td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td><code>consumes</code> field leaked path string (<code>/{id}</code>)</td>
-        <td><code>_extract_annotation_value()</code> bare-string fallback returned positional arg for named-key lookups</td>
-        <td>Added <code>allow_positional</code> flag — only enabled for <code>value</code>/<code>path</code> keys</td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Service method names were <code>None</code>, params empty</td>
-        <td>Regex capture group indices off by one (group 3 vs 4 for method name)</td>
-        <td>Corrected group(3)→group(4) for method name, group(4)→group(5) for params, group(5)→group(6) for throws</td>
-      </tr>
-      <tr>
-        <td>4</td>
-        <td>Entity <code>@Transient</code> field not skipped; picked up preceding field's annotations</td>
-        <td>Fixed 200-char window included previous field declarations; <code>@Transient</code> was missing from annotation regex</td>
-        <td>Replaced window with <code>rfind(";")</code> bounding to previous field end; added <code>Transient</code> to annotation alternation</td>
-      </tr>
-      <tr>
-        <td>5</td>
-        <td><code>camel_to_snake("ID")</code> produced <code>i_d</code> instead of <code>id</code></td>
-        <td>Regex <code>([A-Z])</code> inserted underscores between consecutive uppercase letters</td>
-        <td>Two-phase conversion: first handle acronyms (<code>([A-Z]+)([A-Z][a-z])</code>), then regular camelCase</td>
-      </tr>
-      <tr>
-        <td>6</td>
-        <td>Mapper <code>@Insert("INSERT INTO users (email) VALUES (#{e})")</code> — SQL parens broke regex</td>
-        <td><code>[^)]*</code> stopped at first <code>)</code> inside SQL string, breaking annotation and param parsing</td>
-        <td>Split into two-phase: regex finds method declarations, then extracts preceding <code>@Annotation</code> names from bounded text window</td>
-      </tr>
-      <tr>
-        <td>7</td>
-        <td>Registry crashed on <code>nodejs</code> entry point with no <code>register()</code> function</td>
-        <td><code>ep.load()</code> in <code>discover()</code> raised <code>AttributeError</code>, not caught</td>
-        <td>Wrapped <code>ep.load()</code> in try/except; added stub <code>nodejs/__init__.py</code> with empty <code>register()</code></td>
-      </tr>
-      <tr>
-        <td>8</td>
-        <td>Registry tests failed because <code>get()</code> auto-loaded real parsers, mixing with test fakes</td>
-        <td><code>get()</code>, <code>all_plugins()</code>, <code>supported_languages()</code> all called <code>load_all()</code></td>
-        <td>Removed auto-load from query methods; only <code>find()</code> triggers discovery</td>
-      </tr>
-      <tr>
-        <td>9</td>
-        <td>CI failed on Python 3.11 — <code>ModuleNotFoundError: importlib_metadata</code></td>
-        <td><code>importlib_metadata</code> backport not declared as conditional dependency</td>
-        <td>Added <code>"importlib-metadata>=5.0; python_version &lt; '3.12'"</code> to <code>pyproject.toml</code></td>
-      </tr>
-      <tr>
-        <td>10</td>
-        <td>CI lint job installed all project deps (chromadb, onnxruntime) just to run ruff</td>
-        <td><code>uv run --with ruff</code> discovers <code>pyproject.toml</code> and installs full project</td>
-        <td>Switched to <code>uvx ruff check src/</code> — standalone runner, zero project deps</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h4>Branch &amp; CI/CD Configuration</h4>
-  <pre style="margin:0;background:transparent;border:none;padding:0;">
-<span class="comment"># Branch strategy (per AGENTS.md)</span>
-main                       <span class="comment">← stable, fast-forward from develop</span>
-develop                    <span class="comment">← integration, PR target</span>
-feat/parsers/m1-*         <span class="comment">← feature work (merged to develop via squash PR)</span>
-fix/ci/*                   <span class="comment">← bugfix work</span>
-
-<span class="comment"># CI/CD (.github/workflows/ci.yml)</span>
-<span class="comment"># Triggers: push + pull_request on main, develop</span>
-lint:   <span class="func">uvx ruff check src/</span>                     <span class="comment"># &lt;5s</span>
-test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>  <span class="comment"># 3.11, 3.12, 3.13</span></pre>
-
-  <p style="margin-top:12px;">
-    <strong>SSH remote:</strong> <code>git@github.com:admin-init/uni-kb.git</code> — bypasses OAuth token scope issues for workflow file pushes.
+  <p>
+    <span class="badge badge-green">M1 Complete</span>
+    &nbsp; 79 tests passing, ruff clean, CI green on 3.11/3.12/3.13.
+    &nbsp; <a href="https://github.com/admin-init/uni-dev-workspace/blob/main/retrospectives/M1-parser-system.md">Full retrospective &rarr;</a>
   </p>
-</div>
-
-<div class="card">
-  <h4>Key Takeaways for Future Milestones</h4>
-  <ul>
-    <li><strong>Regex-based parsing is fragile.</strong> Nested parens, cross-method matching, and class vs. method ambiguity caused most bugs. Consider tree-sitter AST for complex parsing tasks.</li>
-    <li><strong>Test fixtures must be realistic.</strong> SQL strings with <code>()</code>, annotations with <code>hasRole('ADMIN')</code> — these edge cases only surfaced through thoughtful test data.</li>
-    <li><strong>Registry auto-load is a side effect.</strong> Query methods should not trigger discovery — <code>find()</code> is the only operation that needs full scan.</li>
-    <li><strong>Token scope matters.</strong> HTTPS pushes of workflow files require <code>workflow</code> OAuth scope. SSH bypasses this entirely.</li>
-    <li><strong>uvx for lint.</strong> <code>uv run --with &lt;tool&gt;</code> installs the whole project; <code>uvx</code> runs the tool in isolation.</li>
-    <li><strong>Conditional deps are real.</strong> <code>importlib_metadata</code> is available on Python &ge; 3.12 as stdlib, but 3.11 needs the backport explicitly.</li>
-  </ul>
 </div>
 
 <!-- ── 11. Dependency Stack ── -->

@@ -314,32 +314,55 @@ def test_verification_gate_fail():
 
 ## Post-Milestone Conclusion
 
-After each milestone completes, write a retrospective in `plan.html` under the `M<N> Retrospective` section
-and commit it to the relevant repository. This documents what was done, what broke, and what was learned.
+After each milestone completes, write a standalone retrospective in `retrospectives/M<N>-<slug>.md`
+and add a summary card with link in `plan.html` under the `M<N> Retrospective` section.
+The workspace commit documents what was done, what broke, and what was learned.
 
-### Structure
+### File Locations
+
+| File | Purpose |
+|------|---------|
+| `retrospectives/M<N>-<slug>.md` | Full retrospective — detailed tables, problems/solutions, takeaways |
+| `plan.html` | Summary card per milestone with badge + link to `.md`; updated phase progress bars |
+
+### Retrospective Structure (`retrospectives/M<N>-<slug>.md`)
 
 ```markdown
-## M<N> Retrospective — <Milestone Name>
+# M<N> Retrospective — <Milestone Name>
 
-### What Was Done
+**Repo:** <repo url> | **Commit:** <hash> | **Issue:** <issue url>
+
+## What Was Done
 - Per-component table: files created, test count, commit hash, issue link
 
-### Problems & Solutions
-- Numbered table: problem description → root cause → solution applied
+## Problems & Solutions
+- Numbered table: # → problem description → root cause → solution applied
 
-### Branch & CI/CD Configuration
+## Branch & CI/CD Configuration
 - Current branch layout, CI workflow summary, remote type (SSH/HTTPS)
 
-### Key Takeaways for Future Milestones
+## Key Takeaways for Future Milestones
 - Bullet list of lessons learned, patterns to avoid, tooling insights
+```
+
+### plan.html Summary Card
+
+```html
+<div class="card">
+  <p>
+    <span class="badge badge-green">M<N> Complete</span>
+    &nbsp; <summary stats>.
+    &nbsp; <a href="https://github.com/.../blob/main/retrospectives/M<N>-<slug>.md">Full retrospective &rarr;</a>
+  </p>
+</div>
 ```
 
 ### Rules
 
-- **One retrospective per milestone.** Append to `plan.html`, don't overwrite previous ones.
+- **One retrospective per milestone.** Create `retrospectives/M<N>-<slug>.md`, don't overwrite previous ones.
 - **Update the phase progress bar** in `plan.html` → `Implementation Phases` (width percentage, green checkmarks).
-- **Commit to `develop`** via `docs/retrospective/m<N>-<slug>` branch, squash-merge PR.
+- **plan.html gets a card** — short summary with badge, key stats, and link to the `.md` file.
+- **Commit to workspace** via `docs/retrospective/m<N>-<slug>` branch, squash-merge PR.
 - Include a **Problems & Solutions table** — every bug fixed during the milestone must be documented with root cause and solution.
 - Link the GitHub issue and commit hash.
 
