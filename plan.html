@@ -878,18 +878,18 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commit:</strong> <code>d57689e</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/1">#1</a></p>
 </div>
 
-<div class="step active">
-  <h3>Phase 3: Knowledge Base Store <span class="badge badge-red">P0</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 3: Knowledge Base Store <span class="badge badge-red">P0</span> <span class="badge badge-green">M2 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
   <p>SQLite schema, ChromaDB collections, NetworkX graph builder. Populated by parser output.</p>
   <h4>Deliverables</h4>
   <ul>
-    <li><code>store/sqlite_store.py</code> — 8 table schema + CRUD</li>
-    <li><code>store/chroma_indexes.py</code> — 14 collection-backed indexes</li>
-    <li><code>store/code_graph.py</code> — NetworkX graph builder</li>
-    <li><code>uni-dev init</code> command</li>
+    <li>&#x2705; <code>store/sqlite_store.py</code> — 8 table schema + CRUD</li>
+    <li>&#x2705; <code>store/chroma_indexes.py</code> — 14 collection-backed indexes</li>
+    <li>&#x2705; <code>store/code_graph.py</code> — NetworkX graph builder</li>
+    <li>&#x2705; <code>uni-dev init</code> command</li>
   </ul>
-  <p><strong>Estimate:</strong> ~1 week</p>
+  <p><strong>Estimate:</strong> ~1 week &nbsp;|&nbsp; <strong>Commit:</strong> <code>11b8f01</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/2">#2</a></p>
 </div>
 
 <div class="step planned">
@@ -934,6 +934,23 @@ $ uni-dev status</pre>
   <p style="margin-top:8px;margin-bottom:0;">
     <span class="badge badge-green">M1 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m1-retro">Full retrospective</a>
+  </p>
+</div>
+
+<!-- ── M2 Retrospective → retrospectives.html ── -->
+<h2 id="m2-conclusion">M2 Retrospective — Storage Layer</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>11b8f01</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/2">#2</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 119
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M2 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m2-retro">Full retrospective</a>
   </p>
 </div>
 

@@ -227,6 +227,84 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>  <span
 
 <!-- FUTURE: more milestones appended here -->
 
+<hr>
+
+<!-- ── M2 ── -->
+<h2 id="m2-retro">M2 Retrospective — Storage Layer</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-kb">admin-init/uni-kb</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>11b8f01</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/2">#2</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 119 (79 existing + 40 new) &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>SQLite Store</strong></td><td><code>store/sqlite_store.py</code> — 8 tables (modules, classes, methods, api_endpoints, db_tables, db_columns, frontend_components, auth_permissions), FK relationships, upsert-based ingestion from <code>ParseResult</code></td><td>14</td></tr>
+      <tr><td><strong>ChromaDB Indexes</strong></td><td><code>store/chroma_indexes.py</code> — 14 named collections, <code>DefaultEmbeddingFunction</code> (all-MiniLM-L6-v2), code indexing by type, schema indexing, semantic search</td><td>10</td></tr>
+      <tr><td><strong>Code Graph</strong></td><td><code>store/code_graph.py</code> — NetworkX <code>DiGraph</code>, 8 node types, 14 edge types, topological sort, GML save/load</td><td>16</td></tr>
+      <tr><td><strong>CLI</strong></td><td><code>cli.py</code> — <code>uni-kb init --project</code> command, walks source tree, runs parsers, populates all stores</td><td>—</td></tr>
+      <tr><td><strong>uni-dev bootstrap</strong></td><td><code>uni_dev/__init__.py</code>, <code>uni_dev/main.py</code> — package init + <code>uni-dev init</code> delegating to uni-kb</td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total</strong></td><td><strong>40</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>chromadb</code> install timeout (>300s)</td>
+        <td><code>chromadb</code> depends on <code>onnxruntime</code> (~1.5GB) which takes minutes to download and install</td>
+        <td>Set <code>timeout-minutes: 10</code> in CI for <code>uv pip install</code>; local installs need patience</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>sqlite-utils</code> <code>rows_where()</code> returns iterator, not list</td>
+        <td>Used <code>next(iter(...))</code> pattern incorrectly when checking empty results</td>
+        <td>Created <code>_first()</code> helper wrapping <code>next(iter(iterable), None)</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Branch &amp; CI/CD Configuration</h4>
+  <pre>
+<span class="comment"># Branch strategy</span>
+main                       <span class="comment">&larr; stable, fast-forward from develop</span>
+develop                    <span class="comment">&larr; integration, PR target</span>
+feat/store/m2-storage      <span class="comment">&larr; feature work (squash PR to develop)</span>
+
+<span class="comment"># CI/CD (.github/workflows/ci.yml)</span>
+lint:   <span class="func">uvx ruff check src/ tests/</span>               <span class="comment"># &lt;10s</span>
+test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>    <span class="comment"># 3.11, 3.12, 3.13</span></pre>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>ChromaDB tests need real embedding engine.</strong> <code>DefaultEmbeddingFunction</code> downloads all-MiniLM-L6-v2 on first use (~80MB). Tests are correct but slow on first run. Consider a fixture that pre-initializes.</li>
+    <li><strong>sqlite-utils auto-creates tables.</strong> The initial <code>create_tables()</code> call with <code>pk=</code> sets up the schema; subsequent opens reuse it. No separate migration step needed.</li>
+    <li><strong>Graph edges are direction-aware.</strong> <code>nx.DiGraph()</code> edges point from source to target. <code>HAS_METHOD</code> goes Class→Method; <code>ROUTES_TO</code> goes Class→Endpoint; <code>FK_TO</code> goes Column→Table. Consistent naming is critical for <code>topological_sort()</code> to be meaningful.</li>
+    <li><strong>CLI walks are I/O-bound.</strong> <code>Path.rglob()</code> across large projects will be slow. Consider parallel parsing in M4.</li>
+    <li><strong>ChromaDB persistence path is absolute.</strong> Using <code>tempfile.TemporaryDirectory</code> in tests works but edge cases around ChromaDB background threads require careful teardown.</li>
+  </ul>
+</div>
+
 </div>
 </body>
 </html>
