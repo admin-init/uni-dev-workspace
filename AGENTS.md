@@ -314,57 +314,52 @@ def test_verification_gate_fail():
 
 ## Post-Milestone Conclusion
 
-After each milestone completes, write a standalone retrospective in `retrospectives/M<N>-<slug>.md`
-and add a summary card with link in `plan.html` under the `M<N> Retrospective` section.
+After each milestone completes, write a retrospective inline in `plan.html` under the `M<N> Retrospective` section,
+formatted with the Catppuccin Mocha theme (cards, tables, badges, <code>&lt;pre&gt;</code> blocks).
 The workspace commit documents what was done, what broke, and what was learned.
 
-### File Locations
-
-| File | Purpose |
-|------|---------|
-| `retrospectives/M<N>-<slug>.md` | Full retrospective — detailed tables, problems/solutions, takeaways |
-| `plan.html` | Summary card per milestone with badge + link to `.md`; updated phase progress bars |
-
-### Retrospective Structure (`retrospectives/M<N>-<slug>.md`)
-
-```markdown
-# M<N> Retrospective — <Milestone Name>
-
-**Repo:** <repo url> | **Commit:** <hash> | **Issue:** <issue url>
-
-## What Was Done
-- Per-component table: files created, test count, commit hash, issue link
-
-## Problems & Solutions
-- Numbered table: # → problem description → root cause → solution applied
-
-## Branch & CI/CD Configuration
-- Current branch layout, CI workflow summary, remote type (SSH/HTTPS)
-
-## Key Takeaways for Future Milestones
-- Bullet list of lessons learned, patterns to avoid, tooling insights
-```
-
-### plan.html Summary Card
+### Structure (plan.html HTML)
 
 ```html
+<h2 id="m<N>-retro">M<N> Retrospective — <Milestone Name></h2>
+
 <div class="card">
   <p>
-    <span class="badge badge-green">M<N> Complete</span>
-    &nbsp; <summary stats>.
-    &nbsp; <a href="https://github.com/.../blob/main/retrospectives/M<N>-<slug>.md">Full retrospective &rarr;</a>
+    <strong>Repo:</strong> <a href="..."><repo url></a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>&lt;hash&gt;</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="...">#&lt;number&gt;</a>
   </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table><!-- per-component file, test count, commit hash, issue link --></table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table><!-- # → problem → root cause → solution --></table>
+</div>
+
+<div class="card">
+  <h4>Branch &amp; CI/CD Configuration</h4>
+  <pre>...</pre>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul><!-- lessons learned, patterns to avoid, tooling insights --></ul>
 </div>
 ```
 
 ### Rules
 
-- **One retrospective per milestone.** Create `retrospectives/M<N>-<slug>.md`, don't overwrite previous ones.
+- **One retrospective per milestone.** Append to `plan.html` under the Implementation Phases section; don't overwrite previous ones.
 - **Update the phase progress bar** in `plan.html` → `Implementation Phases` (width percentage, green checkmarks).
-- **plan.html gets a card** — short summary with badge, key stats, and link to the `.md` file.
 - **Commit to workspace** via `docs/retrospective/m<N>-<slug>` branch, squash-merge PR.
 - Include a **Problems & Solutions table** — every bug fixed during the milestone must be documented with root cause and solution.
 - Link the GitHub issue and commit hash.
+- Use the existing `plan.html` CSS: `.card`, `table`, `pre`, `.badge-*` — no new styles needed.
 
 
 ## CI/CD Setup
