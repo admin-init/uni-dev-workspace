@@ -301,6 +301,9 @@ li { margin-bottom: 4px; }
     <li><a href="#webhooks">Webhooks &amp; CLI</a></li>
     <li><a href="#phases">Implementation Phases</a></li>
     <li><a href="#m1-conclusion">M1 Retrospective</a></li>
+    <li><a href="#m2-conclusion">M2 Retrospective</a></li>
+    <li><a href="#m3-conclusion">M3 Retrospective</a></li>
+    <li><a href="#m4-conclusion">M4 Retrospective</a></li>
     <li><a href="#deps">Dependency Stack</a></li>
   </ol>
 </div>
@@ -374,7 +377,7 @@ li { margin-bottom: 4px; }
 <span class="comment">├─────────────────────────────────────────────────────────┤</span>
 <span class="comment">│              <span class="keyword">Knowledge Base</span> (Single Source of Truth)        │</span>
 <span class="comment">│  SQLite(8 tbl)  ChromaDB(14 idx)  NetworkX  MCP(20)    │</span>
-<span class="comment">│  tree-sitter parser plugins → structured JSON           │</span>
+<span class="comment">│  regex parser plugins → structured JSON                  │</span>
 <span class="comment">└─────────────────────────────────────────────────────────┘</span>
 </pre>
 
@@ -1034,9 +1037,9 @@ dev = [
     <span class="string">"pytest-asyncio"</span>,
 ]
 
-[project.entry-points."uni_dev.parsers"]
-java   = <span class="string">"uni_dev.knowledge_base.parsers.java:register"</span>
-nodejs = <span class="string">"uni_dev.knowledge_base.parsers.nodejs:register"</span>
+[project.entry-points."uni_kb.parsers"]
+java   = <span class="string">"uni_kb.parsers.java:register"</span>
+nodejs = <span class="string">"uni_kb.parsers.nodejs:register"</span>
 </pre>
 
 <!-- ── Footer ── -->
