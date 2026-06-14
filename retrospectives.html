@@ -519,6 +519,100 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>     <s
   </ul>
 </div>
 
+<hr>
+
+<!-- ── M6 ── -->
+<h2 id="m6-retro">M6 Retrospective — Orchestrator + LLM Sub-Agents</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>4600ce4</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/3">#3</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/4">#4</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 62 (35 existing + 27 new) &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Orchestrator</strong></td><td><code>orchestrator.py</code> — main deepagent, ChatOpenAI DeepSeek config, M5 CompiledSubAgent, 5 sub-agents, API key validation</td><td>12</td></tr>
+      <tr><td><strong>Domain Designer</strong></td><td><code>agents/domain_designer.py</code> — DDD phase (v4-pro, reasoning_effort=high)</td><td>3</td></tr>
+      <tr><td><strong>Spec Writer</strong></td><td><code>agents/spec_writer.py</code> — SDD OpenAPI spec generation (v4-flash)</td><td>3</td></tr>
+      <tr><td><strong>Test Generator</strong></td><td><code>agents/test_generator.py</code> — TDD contract + unit tests (v4-flash)</td><td>3</td></tr>
+      <tr><td><strong>Code Generator</strong></td><td><code>agents/code_generator.py</code> — TDD implementation (v4-flash)</td><td>3</td></tr>
+      <tr><td><strong>Reviewer</strong></td><td><code>agents/reviewer.py</code> — post-verification review (v4-pro)</td><td>3</td></tr>
+      <tr><td><strong>Config</strong></td><td><code>config/default.yaml</code> — DeepSeek model assignments, pipeline settings, temperature map</td><td>—</td></tr>
+      <tr><td><strong>Skill</strong></td><td><code>skills/backend-dev/SKILL.md</code> — progressive disclosure methodology + KB tools reference</td><td>—</td></tr>
+      <tr><td><strong>Specs</strong></td><td><code>specs/orchestrator.yaml</code>, <code>specs/agents.yaml</code> — SDD specs for pipeline + agent system prompts</td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total new tests</strong></td><td><strong>27</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>model_kwargs</code> passed to <code>ChatOpenAI()</code> caused <code>TypeError: NoneType is not iterable</code></td>
+        <td>Passing <code>model_kwargs=None</code> (when no extra kwargs) triggered iteration in langchain's internal <code>_build_model_kwargs()</code></td>
+        <td>Switched to passing <code>reasoning_effort</code> and <code>extra_body</code> as top-level <code>ChatOpenAI(...)</code> constructor params via <code>**kwargs</code></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>model_kwargs["reasoning_effort"]</code> not stored on model object — <code>KeyError</code> on access</td>
+        <td><code>ChatOpenAI</code> extracts <code>reasoning_effort</code> and <code>extra_body</code> from constructor kwargs; they're not stored as <code>model_kwargs</code> sub-keys</td>
+        <td>Updated tests to access <code>model.reasoning_effort</code> and <code>model.extra_body</code> as top-level attributes</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>SubAgent.model</code> field accepts <code>str | BaseChatModel</code> but pyright flagged passing <code>ChatOpenAI</code> instance</td>
+        <td>pyright doesn't recognize <code>ChatOpenAI</code> as <code>BaseChatModel</code> since both are in venv</td>
+        <td>Added <code># type: ignore[arg-type]</code> comments — runtime behavior is correct</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Branch &amp; CI/CD Configuration</h4>
+  <pre>
+<span class="comment"># Branch strategy</span>
+main                       <span class="comment">&larr; stable, fast-forward from develop</span>
+develop                    <span class="comment">&larr; integration, PR target</span>
+feat/agents/m6-orchestrator<span class="comment">&larr; feature work (squash PR to develop)</span>
+
+<span class="comment"># CI/CD (.github/workflows/ci.yml)</span>
+lint:   <span class="func">uvx ruff check src/</span>                        <span class="comment"># &lt;10s</span>
+test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>     <span class="comment"># 3.11, 3.12, 3.13 (62 tests)</span>
+
+<span class="comment"># DeepSeek models</span>
+<span class="comment"># v4-pro: orchestrator, domain_designer, reviewer (reasoning_effort=high)</span>
+<span class="comment"># v4-flash: spec_writer, code_generator, test_generator</span>
+<span class="comment"># API key: DEEPSEEK_API_KEY env var (never hardcoded)</span></pre>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>DeepSeek is a drop-in OpenAI replacement.</strong> <code>ChatOpenAI(model="deepseek-v4-pro", base_url="https://api.deepseek.com")</code> just works. No custom provider needed.</li>
+    <li><strong><code>reasoning_effort</code> and <code>extra_body</code> are top-level ChatOpenAI params.</strong> Don't put them in <code>model_kwargs</code> — they're extracted at init time.</li>
+    <li><strong>deepagents SubAgent is a simple TypedDict.</strong> name, description, system_prompt are required; model, tools, skills are optional. Clean API.</li>
+    <li><strong>CompiledSubAgent wraps M5 graph cleanly.</strong> The deterministic core slots right into deepagents as a named runnable sub-agent.</li>
+    <li><strong>API key validation should fail fast.</strong> <code>_get_api_key()</code> raises <code>ValueError</code> on missing or placeholder keys — no cryptic OpenAI errors downstream.</li>
+    <li><strong>27 additional tests for ~400 LOC is good coverage.</strong> Agent factory functions, system prompts, model configuration, and API key handling all tested without requiring live LLM calls.</li>
+  </ul>
+</div>
+
 </div>
 </body>
 </html>
