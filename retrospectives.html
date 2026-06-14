@@ -423,6 +423,102 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>    <sp
   </ul>
 </div>
 
+<hr>
+
+<!-- ── M5 ── -->
+<h2 id="m5-retro">M5 Retrospective — Deterministic Core</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>95f056c</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/1">#1</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/2">#2</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 35 &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Verification Gate</strong></td><td><code>core/verification_gate.py</code> — deterministic pass/fail based on test_results, LLM cannot override</td><td>7</td></tr>
+      <tr><td><strong>Retry Controller</strong></td><td><code>core/retry_controller.py</code> — fixed 3-attempt limit, escalates to human on exhaustion</td><td>7</td></tr>
+      <tr><td><strong>Migration Stepper</strong></td><td><code>core/migration_stepper.py</code> — sequential array index advancement, LLM cannot skip</td><td>7</td></tr>
+      <tr><td><strong>Classification Router</strong></td><td><code>core/classification_router.py</code> — immutable routing table, dict lookup</td><td>9</td></tr>
+      <tr><td><strong>StateGraph</strong></td><td><code>core/graph.py</code> — compiled LangGraph with UniDevState TypedDict, conditional edges</td><td>5</td></tr>
+      <tr><td><strong>Spec (SDD)</strong></td><td><code>specs/core.yaml</code></td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total</strong></td><td><strong>35</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>CI test jobs failed — hatchling rejected direct reference (git URL) in <code>project.dependencies</code></td>
+        <td>PEP 621 prohibits direct references in dependencies without explicit opt-in; hatchling enforces this</td>
+        <td>Added <code>[tool.hatch.metadata]\nallow-direct-references = true</code> to pyproject.toml</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>"no LLM" tests failed because docstrings contained the word "LLM" (e.g. "LLM cannot override")</td>
+        <td>Tests naively checked for substring <code>"llm"</code> in function source, flagging legitimate docstring mentions</td>
+        <td>Changed tests to check for actual LLM usage patterns: imports (langchain, openai, anthropic) and API calls (invoke)</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Issue #2 incorrectly created on <code>uni-dev-workspace</code> repo instead of <code>uni-dev</code></td>
+        <td>Workspace repo tracks plans and docs, not implementation code; uni-dev and uni-kb are separate repos</td>
+        <td>Closed workspace issue #2, created correct issue #1 on admin-init/uni-dev repo with proper labels and milestone</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>classification_router</code> type error: <code>dict.get(classification: Any|None)</code> incompatible with <code>dict[str, str].get(key: str)</code></td>
+        <td>Type checker flagged state.get("classification") returning Any|None passed to ROUTING_TABLE.get()</td>
+        <td>Added isinstance(str, ...) guard before dict lookup</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Branch &amp; CI/CD Configuration</h4>
+  <pre>
+<span class="comment"># Branch strategy</span>
+main                       <span class="comment">&larr; stable, fast-forward from develop</span>
+develop                    <span class="comment">&larr; integration, PR target</span>
+feat/core/m5-deterministic <span class="comment">&larr; feature work (squash PR to develop)</span>
+
+<span class="comment"># CI/CD (.github/workflows/ci.yml)</span>
+lint:   <span class="func">uvx ruff check src/</span>                        <span class="comment"># &lt;10s</span>
+test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>     <span class="comment"># 3.11, 3.12, 3.13</span>
+
+<span class="comment"># Dependencies</span>
+<span class="comment"># uni-kb installed via git: uni-kb @ git+https://github.com/admin-init/uni-kb@main</span>
+<span class="comment"># hatchling allow-direct-references = true required for PEP 621</span></pre>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>Separate the repos.</strong> uni-dev-workspace is for plans and docs; uni-dev and uni-kb are the implementation repos. Always create issues and PRs on the correct repo.</li>
+    <li><strong>Hatchling direct references require opt-in.</strong> PEP 621 intentionally limits direct references in project.dependencies. The <code>allow-direct-references</code> config is required.</li>
+    <li><strong>Docstrings mentioning "LLM" break naive no-LLM tests.</strong> Test for actual LLM *usage* (imports, API calls) rather than the word "LLM" in docstrings.</li>
+    <li><strong>TypedDict is the right abstraction for LangGraph state.</strong> Using TypedDict (not dataclass or BaseModel) aligns with LangGraph's state channel conventions.</li>
+    <li><strong>Placeholder nodes are fine for the compiled graph.</strong> The 5 LLM sub-agent nodes (DomainDesigner, SpecWriter, etc.) use <code>_noop</code> placeholders. The orchestrator will wire real agents in M6.</li>
+    <li><strong>35 test cases for ~200 LOC is healthy.</strong> Each core node has boundary tests (empty state, missing keys, edge cases) plus immutability verification.</li>
+  </ul>
+</div>
+
 </div>
 </body>
 </html>

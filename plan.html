@@ -850,20 +850,20 @@ $ uni-dev status</pre>
 <!-- ── 10. Implementation Phases ── -->
 <h2 id="phases">10. Implementation Phases</h2>
 
-<div class="step active">
-  <h3>Phase 1: Deterministic Core <span class="badge badge-red">P0</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 1: Deterministic Core <span class="badge badge-red">P0</span> <span class="badge badge-green">M5 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
   <p>Build the 4 immutable LangGraph nodes and the compiled workflow StateGraph. These are ~50 lines each, pure Python, zero LLM — they form the non-overridable backbone that all LLM agents must obey.</p>
   <h4>Deliverables</h4>
   <ul>
-    <li><code>core/verification_gate.py</code></li>
-    <li><code>core/retry_controller.py</code></li>
-    <li><code>core/migration_stepper.py</code></li>
-    <li><code>core/classification_router.py</code></li>
-    <li><code>core/graph.py</code> — compiled StateGraph with conditional edges</li>
-    <li>Unit tests for each node</li>
+    <li>&#x2705; <code>core/verification_gate.py</code> — test pass/fail gate (24 LOC)</li>
+    <li>&#x2705; <code>core/retry_controller.py</code> — max 3 attempts (23 LOC)</li>
+    <li>&#x2705; <code>core/migration_stepper.py</code> — sequential stepping (24 LOC)</li>
+    <li>&#x2705; <code>core/classification_router.py</code> — immutable routing table (28 LOC)</li>
+    <li>&#x2705; <code>core/graph.py</code> — compiled StateGraph with conditional edges</li>
+    <li>&#x2705; 35 unit tests across 5 test files</li>
   </ul>
-  <p><strong>Estimate:</strong> ~1 week</p>
+  <p><strong>Estimate:</strong> ~1 week &nbsp;|&nbsp; <strong>Commit:</strong> <code>95f056c</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/1">#1</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/2">#2</a></p>
 </div>
 
 <div class="step active" style="border-left-color: var(--green);">
@@ -1001,6 +1001,23 @@ $ uni-dev status</pre>
   <p style="margin-top:8px;margin-bottom:0;">
     <span class="badge badge-green">M4 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m4-retro">Full retrospective</a>
+  </p>
+</div>
+
+<!-- ── M5 Retrospective → retrospectives.html ── -->
+<h2 id="m5-conclusion">M5 Retrospective — Deterministic Core</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>95f056c</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/1">#1</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/2">#2</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 35
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M5 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m5-retro">Full retrospective</a>
   </p>
 </div>
 
