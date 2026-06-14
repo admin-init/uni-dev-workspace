@@ -932,11 +932,17 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commit:</strong> <code>4600ce4</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/3">#3</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/4">#4</a></p>
 </div>
 
-<div class="step planned">
-  <h3>Phase 6: Security Filter <span class="badge badge-yellow">P1</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
-  <p>Log filter middleware for PII/secret redaction. Plugs into deepagent tool wrapper.</p>
-  <p><strong>Estimate:</strong> ~3 days</p>
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 6: Security Filter <span class="badge badge-yellow">P1</span> <span class="badge badge-green">M7 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <p>Log filter middleware for PII/secret redaction. Plugs into deepagent tool wrapper. 7 regex patterns covering bearer tokens, API keys, passwords, emails, and database connection URLs.</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li>&#x2705; <code>security/log_filter.py</code> — LogFilter with filter_text() + filter_dict()</li>
+    <li>&#x2705; <code>specs/security.yaml</code> — Pattern definitions and apply points</li>
+    <li>&#x2705; 20 new tests (82 total)</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~3 days &nbsp;|&nbsp; <strong>Commit:</strong> <code>0f1f8a0</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/5">#5</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/6">#6</a></p>
 </div>
 
 <div class="step future">
@@ -1047,6 +1053,23 @@ $ uni-dev status</pre>
   <p style="margin-top:8px;margin-bottom:0;">
     <span class="badge badge-green">M6 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m6-retro">Full retrospective</a>
+  </p>
+</div>
+
+<!-- ── M7 Retrospective → retrospectives.html ── -->
+<h2 id="m7-conclusion">M7 Retrospective — Security Filter</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>0f1f8a0</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/5">#5</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/6">#6</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 82
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M7 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m7-retro">Full retrospective</a>
   </p>
 </div>
 
