@@ -770,6 +770,83 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>     <s
   </ul>
 </div>
 
+<hr>
+
+<!-- ── M8 ── -->
+<h2 id="m8-retro">M8 Retrospective — Webhooks + CLI</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>8977c21</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/9">#9</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/10">#10</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 136 (102 existing + 34 new) &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>FastAPI Server</strong></td><td><code>webhooks/server.py</code> — create_app() with 3 endpoints (health, github, codeberg), HMAC-SHA256 validation with WEBHOOK_SECRET env var, 401 on bad signatures</td><td>7</td></tr>
+      <tr><td><strong>GitHub Handler</strong></td><td><code>webhooks/github_handler.py</code> — validate_signature (X-Hub-Signature-256), extract_issue (title/body/number/url/action/sender/repo), handle_event (issue vs PR detection)</td><td>10</td></tr>
+      <tr><td><strong>Codeberg Handler</strong></td><td><code>webhooks/codeberg_handler.py</code> — validate_signature (X-Codeberg-Signature), extract_issue with sender fallback (username → login), handle_event</td><td>8</td></tr>
+      <tr><td><strong>CLI Commands</strong></td><td><code>main.py</code> — 4 commands: init (delegates to uni-kb), run (orchestrator pipeline), listen (uvicorn webhook server), status (MonitorStore dashboard)</td><td>9</td></tr>
+      <tr><td><strong>Specs</strong></td><td><code>specs/webhooks.yaml</code>, <code>specs/cli.yaml</code> — SDD specs for endpoints, handlers, CLI commands</td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total new tests</strong></td><td><strong>34</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Codeberg sender field uses <code>username</code> not <code>login</code> unlike GitHub</td>
+        <td>Codeberg and GitHub use different field names for the sender identifier in webhook payloads</td>
+        <td>Added fallback chain in <code>extract_issue()</code>: try <code>sender.username</code> first, fall back to <code>sender.login</code></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>GitHub vs Codeberg signature headers differ (X-Hub-Signature-256 vs X-Codeberg-Signature)</td>
+        <td>Each platform has its own convention for webhook signature headers</td>
+        <td>Each handler has its own <code>validate_signature()</code> reading the correct header name</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>GitHub signature format is <code>sha256=&lt;hex&gt;</code> while Codeberg sends raw hex</td>
+        <td>Different HMAC-SHA256 signature encoding conventions</td>
+        <td>GitHub handler prefixes <code>sha256=</code> before comparison; Codeberg handler compares raw hex</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>uvicorn</code> import inside CLI function causes LSP warnings</td>
+        <td>uvicorn is a heavy import — importing at top-level slows CLI startup when not using listen</td>
+        <td>Kept import inside <code>listen()</code> function body for lazy loading; LSP warnings are false positives</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>FastAPI TestClient makes webhook testing trivial.</strong> <code>TestClient(app).post("/webhook/github", json=body)</code> gives full request/response testing without a running server.</li>
+    <li><strong>HMAC-SHA256 validation is the standard for webhooks.</strong> Both GitHub and Codeberg use it, but with different header names and signature formats. Pattern-per-platform is cleaner than abstraction.</li>
+    <li><strong>Click's CliRunner enables full CLI testing.</strong> <code>runner.invoke(cli, ["status", "--db", path])</code> tests command output, exit codes, and help text without subprocess overhead.</li>
+    <li><strong>Lazy imports keep CLI responsive.</strong> Importing uvicorn, FastAPI, and orchestrator modules only when their commands are invoked avoids 1s+ startup overhead for simple commands like <code>--version</code> or <code>--help</code>.</li>
+    <li><strong>The <code>status</code> command reuses MonitorStore.</strong> Same SQLite store used by MonitorMiddleware is queried by the CLI — single source of truth for pipeline observability.</li>
+  </ul>
+</div>
+
 </div>
 </body>
 </html>

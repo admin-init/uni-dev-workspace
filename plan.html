@@ -945,11 +945,19 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~3 days &nbsp;|&nbsp; <strong>Commit:</strong> <code>0f1f8a0</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/5">#5</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/6">#6</a></p>
 </div>
 
-<div class="step future">
-  <h3>Phase 7: Webhooks + CLI <span class="badge badge-blue">P2</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
-  <p>FastAPI webhook server for GitHub/Codeberg. Full CLI surface.</p>
-  <p><strong>Estimate:</strong> ~1 week</p>
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 7: Webhooks + CLI <span class="badge badge-blue">P2</span> <span class="badge badge-green">M8 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <p>FastAPI webhook server for GitHub/Codeberg with HMAC-SHA256 validation. Full CLI surface (run, listen, status, init).</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li>&#x2705; <code>webhooks/server.py</code> — FastAPI app with 3 endpoints</li>
+    <li>&#x2705; <code>webhooks/github_handler.py</code> — GitHub payload validation + extraction</li>
+    <li>&#x2705; <code>webhooks/codeberg_handler.py</code> — Codeberg payload validation + extraction</li>
+    <li>&#x2705; <code>main.py</code> — run, listen, status CLI commands</li>
+    <li>&#x2705; 34 new tests (136 total)</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1 week &nbsp;|&nbsp; <strong>Commit:</strong> <code>8977c21</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/9">#9</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/10">#10</a></p>
 </div>
 
 <div class="step active" style="border-left-color: var(--green);">
@@ -1102,6 +1110,23 @@ $ uni-dev status</pre>
   <p style="margin-top:8px;margin-bottom:0;">
     <span class="badge badge-green">M9 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m9-retro">Full retrospective</a>
+  </p>
+</div>
+
+<!-- ── M8 Retrospective → retrospectives.html ── -->
+<h2 id="m8-conclusion">M8 Retrospective — Webhooks + CLI</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>8977c21</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/9">#9</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/10">#10</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 136
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M8 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m8-retro">Full retrospective</a>
   </p>
 </div>
 
