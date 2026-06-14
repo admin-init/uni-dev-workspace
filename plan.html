@@ -299,11 +299,17 @@ li { margin-bottom: 4px; }
     <li><a href="#agents">LLM Sub-Agents</a></li>
     <li><a href="#security">Security Filter</a></li>
     <li><a href="#webhooks">Webhooks &amp; CLI</a></li>
+    <li><a href="#monitoring">Monitor Middleware</a></li>
     <li><a href="#phases">Implementation Phases</a></li>
     <li><a href="#m1-conclusion">M1 Retrospective</a></li>
     <li><a href="#m2-conclusion">M2 Retrospective</a></li>
     <li><a href="#m3-conclusion">M3 Retrospective</a></li>
     <li><a href="#m4-conclusion">M4 Retrospective</a></li>
+    <li><a href="#m5-conclusion">M5 Retrospective</a></li>
+    <li><a href="#m6-conclusion">M6 Retrospective</a></li>
+    <li><a href="#m7-conclusion">M7 Retrospective</a></li>
+    <li><a href="#m8-conclusion">M8 Retrospective</a></li>
+    <li><a href="#m9-conclusion">M9 Retrospective</a></li>
     <li><a href="#deps">Dependency Stack</a></li>
   </ol>
 </div>
@@ -712,16 +718,25 @@ li { margin-bottom: 4px; }
 
 <pre>
 <span class="keyword">from</span> deepagents <span class="keyword">import</span> create_deep_agent
-<span class="keyword">from</span> uni_dev.core.graph <span class="keyword">import</span> compile_pipeline_graph
+<span class="keyword">from</span> langchain_openai <span class="keyword">import</span> ChatOpenAI
+<span class="keyword">from</span> uni_dev.core.graph <span class="keyword">import</span> build_graph
 
-<span class="comment"># The main deepagent wraps the deterministic graph as a sub-agent</span>
-<span class="comment"># Sub-agents for creative work are LLM-powered</span>
+<span class="comment"># DeepSeek-powered orchestrator via OpenAI-compatible ChatOpenAI</span>
+<span class="comment"># Model config loaded from config/default.yaml</span>
 
-pipeline_graph = compile_pipeline_graph()
+model = ChatOpenAI(
+    model=<span class="string">"deepseek-v4-pro"</span>,
+    base_url=<span class="string">"https://api.deepseek.com"</span>,
+    api_key=<span class="string">os.environ["DEEPSEEK_API_KEY"]</span>,
+    reasoning_effort=<span class="string">"high"</span>,
+    extra_body={<span class="string">"thinking"</span>: {<span class="string">"type"</span>: <span class="string">"enabled"</span>}},
+)
+
+pipeline_graph = build_graph()
 
 agent = create_deep_agent(
-    model=<span class="string">"anthropic:claude-sonnet-4-6"</span>,
-    system_prompt=<span class="string">"""
+    model=model,
+    system_prompt=<span class="string">"""</span>
 You are uni-dev, a backend development automation framework.
 You follow DDD → SDD → TDD methodology.
 Always query the Knowledge Base before making decisions.
@@ -839,16 +854,80 @@ $ uni-dev status</pre>
   <div class="card">
     <h4>Webhook Endpoints</h4>
     <table style="margin:0">
-      <tr><td><code>POST /webhook/github</code></td><td>GitHub Issues / PR events</td></tr>
-      <tr><td><code>POST /webhook/codeberg</code></td><td>Codeberg / Tea events</td></tr>
+      <tr><td><code>POST /webhook/github</code></td><td>GitHub Issues / PR events (HMAC-SHA256)</td></tr>
+      <tr><td><code>POST /webhook/codeberg</code></td><td>Codeberg / Tea events (HMAC-SHA256)</td></tr>
       <tr><td><code>GET /health</code></td><td>Health check</td></tr>
     </table>
-    <p style="margin-top:12px">Each handler validates the payload, extracts the issue/PR content, and enqueues it to the orchestrator.</p>
+    <p style="margin-top:12px">Each handler validates the HMAC payload signature, extracts the issue/PR content, and returns structured JSON. Continuous pipeline enqueuing via <code>IssueStore</code> and the <code>watch</code> runner is planned for Phase 10.</p>
   </div>
 </div>
 
-<!-- ── 10. Implementation Phases ── -->
-<h2 id="phases">10. Implementation Phases</h2>
+<!-- ── 10. Monitor Middleware ── -->
+<h2 id="monitoring">10. Monitor Middleware</h2>
+
+<p>
+  <span class="badge badge-green">Pipeline Observability</span>
+  Captures every sub-agent <code>task()</code> delegation with timing, status, and result metadata.
+  Three output channels: LangGraph state, SQLite persistence, structured logging + stream events.
+</p>
+
+<h3>10.1 How It Works</h3>
+
+<pre>
+<span class="comment"># Orchestrator calls task("analyze domain", subagent_type="domain-designer")</span>
+<span class="comment">        │</span>
+<span class="comment">        ▼</span>
+<span class="comment"># MonitorMiddleware.wrap_tool_call() intercepts</span>
+<span class="comment">        ├── Records TaskRun {run_id, subagent_type, started_at, status="running"}</span>
+<span class="comment">        ├── Emits stream event ("task_start", {...})</span>
+<span class="comment">        ├── Logs: "Task domain-designer#abc123: dispatching"</span>
+<span class="comment">        ├── Calls handler() → sub-agent runs</span>
+<span class="comment">        ├── Records {completed_at, duration_ms, status="success", result_length}</span>
+<span class="comment">        ├── Writes to state.task_runs (append-only, custom reducer)</span>
+<span class="comment">        ├── Persists to .uni-dev/monitor.db</span>
+<span class="comment">        ├── Emits stream event ("task_end", {...})</span>
+<span class="comment">        └── Logs: "Task domain-designer#abc123: success in 2300ms (1423 chars)"</span>
+</pre>
+
+<h3>10.2 Output Channels</h3>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>State Field</h4>
+    <p><code>state["task_runs"]</code> — append-only list of TaskRun dicts, persisted across turns within a session. Custom reducer accumulates via <code>Annotated[NotRequired[list[...]], _task_run_reducer]</code>.</p>
+  </div>
+  <div class="card">
+    <h4>SQLite Store</h4>
+    <p><code>.uni-dev/monitor.db</code> — <code>task_runs</code> table with indexes on subagent_type, status, started_at. Queryable via <code>MonitorStore.query_runs()</code> and <code>summary()</code>. Used by <code>uni-dev status</code>.</p>
+  </div>
+  <div class="card">
+    <h4>Logging + Streams</h4>
+    <p>Structured log lines via <code>logging.getLogger("uni_dev.monitor")</code>. Custom stream events (<code>task_start</code>, <code>task_end</code>, <code>session_end</code>) via <code>runtime.stream_writer</code> for real-time dashboards.</p>
+  </div>
+</div>
+
+<h3>10.3 TaskRun Schema</h3>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>run_id</code></td><td>str</td><td>UUID4 hex identifier</td></tr>
+    <tr><td><code>subagent_type</code></td><td>str</td><td>Sub-agent name (domain-designer, spec-writer, ...)</td></tr>
+    <tr><td><code>description</code></td><td>str | None</td><td>Task description text</td></tr>
+    <tr><td><code>parent_agent</code></td><td>str</td><td>Calling agent name (default: orchestrator)</td></tr>
+    <tr><td><code>started_at</code></td><td>float</td><td>time.time() when dispatched</td></tr>
+    <tr><td><code>completed_at</code></td><td>float | None</td><td>time.time() when completed</td></tr>
+    <tr><td><code>duration_ms</code></td><td>int | None</td><td>Wall-clock milliseconds</td></tr>
+    <tr><td><code>status</code></td><td>str</td><td>running | success | error</td></tr>
+    <tr><td><code>error</code></td><td>str | None</td><td>Exception message if failed</td></tr>
+    <tr><td><code>result_length</code></td><td>int | None</td><td>Chars in ToolMessage content</td></tr>
+  </tbody>
+</table>
+
+<!-- ── 11. Implementation Phases ── -->
+<h2 id="phases">11. Implementation Phases</h2>
 
 <div class="step active" style="border-left-color: var(--green);">
   <h3>Phase 1: Deterministic Core <span class="badge badge-red">P0</span> <span class="badge badge-green">M5 Done</span></h3>
@@ -1130,8 +1209,8 @@ $ uni-dev status</pre>
   </p>
 </div>
 
-<!-- ── 11. Dependency Stack ── -->
-<h2 id="deps">11. Dependency Stack</h2>
+<!-- ── 12. Dependency Stack ── -->
+<h2 id="deps">12. Dependency Stack</h2>
 
 <pre>
 <span class="comment"># pyproject.toml</span>
