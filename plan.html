@@ -300,6 +300,7 @@ li { margin-bottom: 4px; }
     <li><a href="#security">Security Filter</a></li>
     <li><a href="#webhooks">Webhooks &amp; CLI</a></li>
     <li><a href="#monitoring">Monitor Middleware</a></li>
+    <li><a href="#runner">Continuous Runner + TUI</a></li>
     <li><a href="#phases">Implementation Phases</a></li>
     <li><a href="#m1-conclusion">M1 Retrospective</a></li>
     <li><a href="#m2-conclusion">M2 Retrospective</a></li>
@@ -718,25 +719,16 @@ li { margin-bottom: 4px; }
 
 <pre>
 <span class="keyword">from</span> deepagents <span class="keyword">import</span> create_deep_agent
-<span class="keyword">from</span> langchain_openai <span class="keyword">import</span> ChatOpenAI
-<span class="keyword">from</span> uni_dev.core.graph <span class="keyword">import</span> build_graph
+<span class="keyword">from</span> uni_dev.core.graph <span class="keyword">import</span> compile_pipeline_graph
 
-<span class="comment"># DeepSeek-powered orchestrator via OpenAI-compatible ChatOpenAI</span>
-<span class="comment"># Model config loaded from config/default.yaml</span>
+<span class="comment"># The main deepagent wraps the deterministic graph as a sub-agent</span>
+<span class="comment"># Sub-agents for creative work are LLM-powered</span>
 
-model = ChatOpenAI(
-    model=<span class="string">"deepseek-v4-pro"</span>,
-    base_url=<span class="string">"https://api.deepseek.com"</span>,
-    api_key=<span class="string">os.environ["DEEPSEEK_API_KEY"]</span>,
-    reasoning_effort=<span class="string">"high"</span>,
-    extra_body={<span class="string">"thinking"</span>: {<span class="string">"type"</span>: <span class="string">"enabled"</span>}},
-)
-
-pipeline_graph = build_graph()
+pipeline_graph = compile_pipeline_graph()
 
 agent = create_deep_agent(
-    model=model,
-    system_prompt=<span class="string">"""</span>
+    model=<span class="string">"anthropic:claude-sonnet-4-6"</span>,
+    system_prompt=<span class="string">"""
 You are uni-dev, a backend development automation framework.
 You follow DDD → SDD → TDD methodology.
 Always query the Knowledge Base before making decisions.
@@ -854,79 +846,84 @@ $ uni-dev status</pre>
   <div class="card">
     <h4>Webhook Endpoints</h4>
     <table style="margin:0">
-      <tr><td><code>POST /webhook/github</code></td><td>GitHub Issues / PR events (HMAC-SHA256)</td></tr>
-      <tr><td><code>POST /webhook/codeberg</code></td><td>Codeberg / Tea events (HMAC-SHA256)</td></tr>
+      <tr><td><code>POST /webhook/github</code></td><td>GitHub Issues / PR events</td></tr>
+      <tr><td><code>POST /webhook/codeberg</code></td><td>Codeberg / Tea events</td></tr>
       <tr><td><code>GET /health</code></td><td>Health check</td></tr>
     </table>
-    <p style="margin-top:12px">Each handler validates the HMAC payload signature, extracts the issue/PR content, and returns structured JSON. Continuous pipeline enqueuing via <code>IssueStore</code> and the <code>watch</code> runner is planned for Phase 10.</p>
+    <p style="margin-top:12px">Each handler validates the payload, extracts the issue/PR content, and enqueues it to the orchestrator.</p>
   </div>
 </div>
 
-<!-- ── 10. Monitor Middleware ── -->
-<h2 id="monitoring">10. Monitor Middleware</h2>
+<!-- ── 12. Continuous Runner + TUI ── -->
+<h2 id="runner">12. Continuous Runner + TUI</h2>
 
 <p>
-  <span class="badge badge-green">Pipeline Observability</span>
-  Captures every sub-agent <code>task()</code> delegation with timing, status, and result metadata.
-  Three output channels: LangGraph state, SQLite persistence, structured logging + stream events.
+  <span class="badge badge-blue">PR #13 — Awaiting Review</span>
+  Long-running pipeline runner with Textual TUI dashboard. Continuously watches for issues
+  from webhooks and the chat modal, invokes the orchestrator in background threads, and
+  supports human-in-the-loop approval for escalated issues.
 </p>
 
-<h3>10.1 How It Works</h3>
+<h3>12.1 Issue Lifecycle</h3>
 
 <pre>
-<span class="comment"># Orchestrator calls task("analyze domain", subagent_type="domain-designer")</span>
-<span class="comment">        │</span>
-<span class="comment">        ▼</span>
-<span class="comment"># MonitorMiddleware.wrap_tool_call() intercepts</span>
-<span class="comment">        ├── Records TaskRun {run_id, subagent_type, started_at, status="running"}</span>
-<span class="comment">        ├── Emits stream event ("task_start", {...})</span>
-<span class="comment">        ├── Logs: "Task domain-designer#abc123: dispatching"</span>
-<span class="comment">        ├── Calls handler() → sub-agent runs</span>
-<span class="comment">        ├── Records {completed_at, duration_ms, status="success", result_length}</span>
-<span class="comment">        ├── Writes to state.task_runs (append-only, custom reducer)</span>
-<span class="comment">        ├── Persists to .uni-dev/monitor.db</span>
-<span class="comment">        ├── Emits stream event ("task_end", {...})</span>
-<span class="comment">        └── Logs: "Task domain-designer#abc123: success in 2300ms (1423 chars)"</span>
+<span class="comment">[webhook / chat / CLI]</span>
+      │
+      ▼
+   <span class="node">pending</span> ← IssueStore.insert()
+      │
+      │ IssueRunner picks up
+      ▼
+   <span class="node">running</span> ← orchestrator.invoke()
+      │
+   ┌──┼────────────────────┐
+   ▼  ▼                    ▼
+<span class="gate">done</span> <span class="node">needs_human</span>        <span class="fail">failed</span>
+      │
+   ┌──┼──────────┐
+   ▼  ▼          ▼
+<span class="gate">approve</span> <span class="fail">reject</span>    <span class="loop">retry</span>
+   │  │          │
+   ▼  ▼          └──► running
+  done failed
 </pre>
 
-<h3>10.2 Output Channels</h3>
+<h3>12.2 TUI Layout</h3>
 
-<div class="card-grid">
-  <div class="card">
-    <h4>State Field</h4>
-    <p><code>state["task_runs"]</code> — append-only list of TaskRun dicts, persisted across turns within a session. Custom reducer accumulates via <code>Annotated[NotRequired[list[...]], _task_run_reducer]</code>.</p>
-  </div>
-  <div class="card">
-    <h4>SQLite Store</h4>
-    <p><code>.uni-dev/monitor.db</code> — <code>task_runs</code> table with indexes on subagent_type, status, started_at. Queryable via <code>MonitorStore.query_runs()</code> and <code>summary()</code>. Used by <code>uni-dev status</code>.</p>
-  </div>
-  <div class="card">
-    <h4>Logging + Streams</h4>
-    <p>Structured log lines via <code>logging.getLogger("uni_dev.monitor")</code>. Custom stream events (<code>task_start</code>, <code>task_end</code>, <code>session_end</code>) via <code>runtime.stream_writer</code> for real-time dashboards.</p>
-  </div>
+<div class="graph-box">
+┌─────────────┬──────────────────────────────────┐
+│ Issue Queue │  Issue Detail                     │
+│ ─────────── │  ─────────────                    │
+│ #42 pending │  Title: Add avatar upload          │
+│ #43 running │  Status: running                   │
+│ #40 needs_h │  Sub-agent: code-generator         │
+│ #39 done    │  Task runs: 4/5 completed          │
+│             │                                   │
+│             │  [Approve] [Reject] [Retry]       │
+│─────────────│───────────────────────────────────│
+│ Pipeline Log (scrolling)                        │
+└──────────────────────────────────────────────────┘
+
+<span class="comment"># Press 'n' → Chat modal for LLM-powered issue drafting (v4-flash)</span>
+<span class="comment"># Webhook events → IssueStore → Runner picks up → orchestrator runs</span>
+<span class="comment"># Human-in-the-loop: uni-dev approve/reject/retry &lt;issue_id&gt;</span>
 </div>
 
-<h3>10.3 TaskRun Schema</h3>
+<h3>12.3 CLI Commands</h3>
 
 <table>
   <thead>
-    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+    <tr><th>Command</th><th>Description</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>run_id</code></td><td>str</td><td>UUID4 hex identifier</td></tr>
-    <tr><td><code>subagent_type</code></td><td>str</td><td>Sub-agent name (domain-designer, spec-writer, ...)</td></tr>
-    <tr><td><code>description</code></td><td>str | None</td><td>Task description text</td></tr>
-    <tr><td><code>parent_agent</code></td><td>str</td><td>Calling agent name (default: orchestrator)</td></tr>
-    <tr><td><code>started_at</code></td><td>float</td><td>time.time() when dispatched</td></tr>
-    <tr><td><code>completed_at</code></td><td>float | None</td><td>time.time() when completed</td></tr>
-    <tr><td><code>duration_ms</code></td><td>int | None</td><td>Wall-clock milliseconds</td></tr>
-    <tr><td><code>status</code></td><td>str</td><td>running | success | error</td></tr>
-    <tr><td><code>error</code></td><td>str | None</td><td>Exception message if failed</td></tr>
-    <tr><td><code>result_length</code></td><td>int | None</td><td>Chars in ToolMessage content</td></tr>
+    <tr><td><code>uni-dev watch</code></td><td>Start continuous runner + TUI dashboard</td></tr>
+    <tr><td><code>uni-dev approve &lt;id&gt;</code></td><td>Approve a needs_human issue</td></tr>
+    <tr><td><code>uni-dev reject &lt;id&gt;</code></td><td>Reject a needs_human issue</td></tr>
+    <tr><td><code>uni-dev retry &lt;id&gt;</code></td><td>Retry a needs_human/failed issue</td></tr>
   </tbody>
 </table>
 
-<!-- ── 11. Implementation Phases ── -->
+<!-- ── 13. Implementation Phases ── -->
 <h2 id="phases">11. Implementation Phases</h2>
 
 <div class="step active" style="border-left-color: var(--green);">
@@ -1024,19 +1021,11 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~3 days &nbsp;|&nbsp; <strong>Commit:</strong> <code>0f1f8a0</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/5">#5</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/6">#6</a></p>
 </div>
 
-<div class="step active" style="border-left-color: var(--green);">
-  <h3>Phase 7: Webhooks + CLI <span class="badge badge-blue">P2</span> <span class="badge badge-green">M8 Done</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-  <p>FastAPI webhook server for GitHub/Codeberg with HMAC-SHA256 validation. Full CLI surface (run, listen, status, init).</p>
-  <h4>Deliverables</h4>
-  <ul>
-    <li>&#x2705; <code>webhooks/server.py</code> — FastAPI app with 3 endpoints</li>
-    <li>&#x2705; <code>webhooks/github_handler.py</code> — GitHub payload validation + extraction</li>
-    <li>&#x2705; <code>webhooks/codeberg_handler.py</code> — Codeberg payload validation + extraction</li>
-    <li>&#x2705; <code>main.py</code> — run, listen, status CLI commands</li>
-    <li>&#x2705; 34 new tests (136 total)</li>
-  </ul>
-  <p><strong>Estimate:</strong> ~1 week &nbsp;|&nbsp; <strong>Commit:</strong> <code>8977c21</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/9">#9</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/10">#10</a></p>
+<div class="step future">
+  <h3>Phase 7: Webhooks + CLI <span class="badge badge-blue">P2</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+  <p>FastAPI webhook server for GitHub/Codeberg. Full CLI surface.</p>
+  <p><strong>Estimate:</strong> ~1 week</p>
 </div>
 
 <div class="step active" style="border-left-color: var(--green);">
@@ -1052,6 +1041,23 @@ $ uni-dev status</pre>
     <li>&#x2705; 20 new tests (102 total)</li>
   </ul>
   <p><strong>Estimate:</strong> ~2 days &nbsp;|&nbsp; <strong>Commit:</strong> <code>79f461c</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/7">#7</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/8">#8</a></p>
+</div>
+
+<div class="step planned">
+  <h3>Phase 10: Continuous Runner + TUI <span class="badge badge-yellow">P1</span> <span class="badge badge-blue">PR #13 — Awaiting Review</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:95%"></div></div>
+  <p>Long-running pipeline runner with Textual TUI dashboard, SQLite issue lifecycle tracking, webhook-to-queue integration, and LLM-powered chat for interactive issue drafting. Human-in-the-loop via approve/reject/retry.</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li><code>store/issue_store.py</code> — SQLite issue lifecycle (pending→running→completed/failed/needs_human)</li>
+    <li><code>runner.py</code> — IssueRunner: background poll loop, orchestrator in threads</li>
+    <li><code>tui/app.py</code> — UniDevApp: 3-panel Textual dashboard (queue | detail+actions | log)</li>
+    <li><code>tui/chat.py</code> — ChatModal: LLM-powered issue drafting (v4-flash)</li>
+    <li><code>main.py</code> — <code>uni-dev watch</code>, <code>approve</code>, <code>reject</code>, <code>retry</code></li>
+    <li><code>webhooks/server.py</code> — Wired to IssueStore.insert()</li>
+    <li>12 new tests (148 total)</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1 week &nbsp;|&nbsp; <strong>Branch:</strong> <code>feat/runner/m10-continuous</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/12">#12</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/13">#13</a></p>
 </div>
 
 <!-- ── M1 Retrospective → retrospectives.html ── -->
@@ -1192,25 +1198,8 @@ $ uni-dev status</pre>
   </p>
 </div>
 
-<!-- ── M8 Retrospective → retrospectives.html ── -->
-<h2 id="m8-conclusion">M8 Retrospective — Webhooks + CLI</h2>
-
-<div class="card">
-  <p>
-    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
-    &nbsp;|&nbsp; <strong>Commit:</strong> <code>8977c21</code>
-    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/9">#9</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/10">#10</a>
-    &nbsp;|&nbsp; <strong>Tests:</strong> 136
-    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
-  </p>
-  <p style="margin-top:8px;margin-bottom:0;">
-    <span class="badge badge-green">M8 Complete</span>
-    All deliverables done. &rarr; <a href="retrospectives.html#m8-retro">Full retrospective</a>
-  </p>
-</div>
-
-<!-- ── 12. Dependency Stack ── -->
-<h2 id="deps">12. Dependency Stack</h2>
+<!-- ── 13. Dependency Stack ── -->
+<h2 id="deps">13. Dependency Stack</h2>
 
 <pre>
 <span class="comment"># pyproject.toml</span>
