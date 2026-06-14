@@ -913,11 +913,23 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commit:</strong> <code>cc99656</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-kb/issues/10">#10</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-kb/pull/11">#11</a></p>
 </div>
 
-<div class="step planned">
-  <h3>Phase 5: LLM Sub-Agents <span class="badge badge-yellow">P1</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
-  <p>Define 5 specialized sub-agents for the DDD→SDD→TDD pipeline, wired into the deepagent orchestrator.</p>
-  <p><strong>Estimate:</strong> ~1.5 weeks</p>
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 5: LLM Sub-Agents <span class="badge badge-yellow">P1</span> <span class="badge badge-green">M6 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <p>Define 5 specialized sub-agents for the DDD→SDD→TDD pipeline, wired into the deepagent orchestrator. Powered by DeepSeek v4 (pro/flash) via langchain-openai.</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li>&#x2705; <code>orchestrator.py</code> — Main deepagent with compiled M5 sub-agent + 5 LLM agents</li>
+    <li>&#x2705; <code>agents/domain_designer.py</code> — DDD phase (v4-pro)</li>
+    <li>&#x2705; <code>agents/spec_writer.py</code> — SDD phase (v4-flash)</li>
+    <li>&#x2705; <code>agents/test_generator.py</code> — TDD phase (v4-flash)</li>
+    <li>&#x2705; <code>agents/code_generator.py</code> — TDD phase (v4-flash)</li>
+    <li>&#x2705; <code>agents/reviewer.py</code> — Post-verify (v4-pro)</li>
+    <li>&#x2705; <code>config/default.yaml</code> — DeepSeek model + pipeline config</li>
+    <li>&#x2705; <code>skills/backend-dev/SKILL.md</code> — Progressive disclosure skill</li>
+    <li>&#x2705; 27 new tests (62 total)</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1.5 weeks &nbsp;|&nbsp; <strong>Commit:</strong> <code>4600ce4</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/3">#3</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/4">#4</a></p>
 </div>
 
 <div class="step planned">
@@ -1018,6 +1030,23 @@ $ uni-dev status</pre>
   <p style="margin-top:8px;margin-bottom:0;">
     <span class="badge badge-green">M5 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m5-retro">Full retrospective</a>
+  </p>
+</div>
+
+<!-- ── M6 Retrospective → retrospectives.html ── -->
+<h2 id="m6-conclusion">M6 Retrospective — Orchestrator + LLM Sub-Agents</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>4600ce4</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/3">#3</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/4">#4</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 62
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M6 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m6-retro">Full retrospective</a>
   </p>
 </div>
 
