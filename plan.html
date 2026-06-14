@@ -952,6 +952,21 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~1 week</p>
 </div>
 
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 9: Monitor Middleware <span class="badge badge-yellow">P1</span> <span class="badge badge-green">M9 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <p>Pipeline observability middleware that records sub-agent task() delegation, timing, and results via wrap_tool_call hooks. Three output channels: LangGraph state, SQLite persistence, structured logging + stream events.</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li>&#x2705; <code>monitoring/monitor.py</code> — MonitorMiddleware intercepting all tool calls</li>
+    <li>&#x2705; <code>monitoring/store.py</code> — MonitorStore with SQLite (query_runs, summary)</li>
+    <li>&#x2705; <code>monitoring/__init__.py</code> — Package exports</li>
+    <li>&#x2705; <code>orchestrator.py</code> — Integration via monitor_db_path param</li>
+    <li>&#x2705; 20 new tests (102 total)</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~2 days &nbsp;|&nbsp; <strong>Commit:</strong> <code>79f461c</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/7">#7</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/8">#8</a></p>
+</div>
+
 <!-- ── M1 Retrospective → retrospectives.html ── -->
 <h2 id="m1-conclusion">M1 Retrospective — Parser System</h2>
 
@@ -1070,6 +1085,23 @@ $ uni-dev status</pre>
   <p style="margin-top:8px;margin-bottom:0;">
     <span class="badge badge-green">M7 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m7-retro">Full retrospective</a>
+  </p>
+</div>
+
+<!-- ── M9 Retrospective → retrospectives.html ── -->
+<h2 id="m9-conclusion">M9 Retrospective — Monitor Middleware</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>79f461c</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/7">#7</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/8">#8</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 102
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M9 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m9-retro">Full retrospective</a>
   </p>
 </div>
 

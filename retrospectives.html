@@ -694,6 +694,82 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>     <s
   </ul>
 </div>
 
+<hr>
+
+<!-- ── M9 ── -->
+<h2 id="m9-retro">M9 Retrospective — Monitor Middleware</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>79f461c</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/7">#7</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/8">#8</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 102 (82 existing + 20 new) &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>MonitorMiddleware</strong></td><td><code>monitoring/monitor.py</code> — wrap_tool_call intercepts all tool calls, TaskRun state (append-only via custom reducer), structured logging (INFO for task dispatch/completion, DEBUG for other tools), stream events (task_start/task_end/session_end)</td><td>12</td></tr>
+      <tr><td><strong>MonitorStore</strong></td><td><code>monitoring/store.py</code> — SQLite persistence with auto-schema, query_runs() with subagent_type/status filters, summary() aggregation</td><td>8</td></tr>
+      <tr><td><strong>Orchestrator integration</strong></td><td><code>orchestrator.py</code> — optional <code>monitor_db_path</code> param, MonitorMiddleware prepended to middleware list</td><td>—</td></tr>
+      <tr><td><strong>Spec</strong></td><td><code>specs/monitor.yaml</code> — SDD spec with TaskRun model, state schema, hook definitions</td><td>—</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total new tests</strong></td><td><strong>20</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>wrap_tool_call</code> signature requires <code>handler: ToolCallWrapper</code>, not a generic Callable</td>
+        <td><code>AgentMiddleware.wrap_tool_call</code> uses <code>ToolCallWrapper</code> from <code>langgraph.prebuilt.tool_node</code> as the handler type</td>
+        <td>Used <code>ToolCallWrapper</code> in the type annotation and accessed <code>request.tool_call</code> dict for tool name/args</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>wrap_tool_call</code> handler doesn't have direct access to <code>runtime.stream_writer</code></td>
+        <td>The <code>wrap_tool_call(request, handler)</code> hook receives <code>ToolCallRequest</code> (which includes runtime) but <code>runtime.stream_writer</code> isn't easily callable from the wrapping context</td>
+        <td>Stored <code>runtime.stream_writer</code> reference in <code>before_agent</code> hook via <code>self._stream_writer</code> for use in <code>wrap_tool_call</code></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Need a custom state reducer for append-only <code>task_runs</code> list</td>
+        <td><code>AgentState</code> uses <code>add_messages</code> for messages but no built-in list accumulator exists. A bare <code>list</code> field would overwrite on each Command.</td>
+        <td>Defined <code>_task_run_reducer(existing, new) -> existing + new</code> and used <code>Annotated[NotRequired[list[...]], _task_run_reducer]</code> in MonitorState TypedDict</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Task error exceptions need to be caught and recorded without breaking the pipeline</td>
+        <td><code>handler(request)</code> raises exceptions on sub-agent failures, which would bubble up without recording</td>
+        <td>Wrapped <code>handler(request)</code> in try/except: on error, record TaskRun with status="error" and error message, then return <code>Command(update={"task_runs": [run]})</code> to keep the state consistent</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong><code>wrap_tool_call</code> is the ideal interception point.</strong> It fires for every tool invocation — perfect for logging, monitoring, and the security LogFilter. The pattern is consistent across deepagents.</li>
+    <li><strong>State reducers are essential for append-only fields.</strong> Without a custom reducer, state updates replace rather than accumulate. The <code>Annotated[NotRequired[T], reducer]</code> pattern is well-documented in LangGraph.</li>
+    <li><strong>MonitorMiddleware runs outermost.</strong> By prepending to the middleware list, it wraps all other middleware — seeing every tool call before filesystem, sub-agent, or skills middleware processes it.</li>
+    <li><strong>SQLite with auto-schema is lightweight and reliable.</strong> <code>CREATE TABLE IF NOT EXISTS</code> ensures zero-migration startup. <code>sqlite3.Row</code> factory gives clean dict results.</li>
+    <li><strong>Three output channels serve different consumers.</strong> State for in-session querying, SQLite for historical analysis, logging+streams for real-time dashboards. Each has different latency/queryability tradeoffs.</li>
+  </ul>
+</div>
+
 </div>
 </body>
 </html>
