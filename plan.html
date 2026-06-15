@@ -311,6 +311,7 @@ li { margin-bottom: 4px; }
     <li><a href="#m7-conclusion">M7 Retrospective</a></li>
     <li><a href="#m8-conclusion">M8 Retrospective</a></li>
     <li><a href="#m9-conclusion">M9 Retrospective</a></li>
+    <li><a href="#refactor">Phase 11: Re-entrant State Machine Refactor</a></li>
     <li><a href="#deps">Dependency Stack</a></li>
   </ol>
 </div>
@@ -1021,11 +1022,20 @@ $ uni-dev status</pre>
   <p><strong>Estimate:</strong> ~3 days &nbsp;|&nbsp; <strong>Commit:</strong> <code>0f1f8a0</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/5">#5</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/6">#6</a></p>
 </div>
 
-<div class="step future">
-  <h3>Phase 7: Webhooks + CLI <span class="badge badge-blue">P2</span></h3>
-  <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
-  <p>FastAPI webhook server for GitHub/Codeberg. Full CLI surface.</p>
-  <p><strong>Estimate:</strong> ~1 week</p>
+<div class="step active" style="border-left-color: var(--green);">
+  <h3>Phase 7: Webhooks + CLI <span class="badge badge-yellow">P1</span> <span class="badge badge-green">M8 Done</span></h3>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  <p>FastAPI webhook server for GitHub/Codeberg. Full CLI surface with 8 Click commands.</p>
+  <h4>Deliverables</h4>
+  <ul>
+    <li>&#x2705; <code>webhooks/server.py</code> — FastAPI app, 3 endpoints (health, github, codeberg)</li>
+    <li>&#x2705; <code>webhooks/github_handler.py</code> — HMAC-SHA256 validation, issue extraction</li>
+    <li>&#x2705; <code>webhooks/codeberg_handler.py</code> — HMAC-SHA256 validation, sender fallback</li>
+    <li>&#x2705; <code>main.py</code> — 4 CLI commands (init, run, listen, status)</li>
+    <li>&#x2705; <code>specs/webhooks.yaml</code>, <code>specs/cli.yaml</code> — SDD specs</li>
+    <li>&#x2705; 34 new tests (136 total)</li>
+  </ul>
+  <p><strong>Estimate:</strong> ~1 week &nbsp;|&nbsp; <strong>Commit:</strong> <code>8977c21</code> &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/9">#9</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/10">#10</a></p>
 </div>
 
 <div class="step active" style="border-left-color: var(--green);">
@@ -1181,6 +1191,23 @@ $ uni-dev status</pre>
   </p>
 </div>
 
+<!-- ── M8 Retrospective → retrospectives.html ── -->
+<h2 id="m8-conclusion">M8 Retrospective — Webhooks + CLI</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>8977c21</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/9">#9</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/10">#10</a>
+    &nbsp;|&nbsp; <strong>Tests:</strong> 136
+    &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+  <p style="margin-top:8px;margin-bottom:0;">
+    <span class="badge badge-green">M8 Complete</span>
+    All deliverables done. &rarr; <a href="retrospectives.html#m8-retro">Full retrospective</a>
+  </p>
+</div>
+
 <!-- ── M9 Retrospective → retrospectives.html ── -->
 <h2 id="m9-conclusion">M9 Retrospective — Monitor Middleware</h2>
 
@@ -1196,6 +1223,224 @@ $ uni-dev status</pre>
     <span class="badge badge-green">M9 Complete</span>
     All deliverables done. &rarr; <a href="retrospectives.html#m9-retro">Full retrospective</a>
   </p>
+</div>
+
+<!-- ── 14. Re-entrant State Machine Refactor ── -->
+<h2 id="refactor">14. Re-entrant State Machine Refactor <span class="badge badge-blue">Planned</span></h2>
+
+<p>
+  <span class="badge badge-red">Architectural Fix</span>
+  Resolves the dual-runtime problem by inverting control: the Graph becomes a pure state machine
+  producing instructions, and the Orchestrator drives it in a loop, calling SubAgents with full
+  tool access. Replaces <code>CompiledSubAgent</code> wrapping with a <code>run_pipeline_loop()</code>
+  tool.
+</p>
+
+<div class="card">
+  <h4>Problem</h4>
+  <p>
+    The current architecture has two separate LangGraph runtimes: (A) the deepagent orchestrator
+    with <code>task()</code> and full tools, and (B) the pipeline graph wrapped as
+    <code>CompiledSubAgent</code>. The graph's LLM nodes create their own <code>ChatOpenAI</code>
+    instances without access to filesystem, MCP, or shell tools. The graph fabricates
+    <code>test_results</code> as always-passing, making the Verification Gate a rubber stamp.
+    Sub-agent logic is duplicated between <code>graph.py</code> and <code>agents/*.py</code>.
+  </p>
+</div>
+
+<div class="card">
+  <h4>Solution: Re-entrant State Machine</h4>
+  <pre>
+<span class="comment">Orchestrator Loop (run_pipeline_loop @tool)</span>
+  │
+  ├── <span class="func">graph.invoke(state)</span>  ← pure Python, returns instruction
+  │     │
+  │     ├── ClassificationRouter → routes to first LLM node
+  │     ├── <span class="node">_domain_designer_node</span>   → returns {"next_action": "CALL_DOMAIN_DESIGNER"}
+  │     ├── <span class="node">_spec_writer_node</span>       → returns {"next_action": "CALL_SPEC_WRITER"}
+  │     ├── <span class="node">_test_generator_node</span>    → returns {"next_action": "CALL_TEST_GENERATOR"}
+  │     ├── <span class="node">_code_generator_node</span>     → returns {"next_action": "CALL_CODE_GENERATOR"}
+  │     ├── VerificationGate      → returns pass/fail/blocked
+  │     │     ├── <span class="gate">pass</span>    → Reviewer → COMPLETE
+  │     │     ├── <span class="fail">fail</span>    → RetryController → retry/escalate
+  │     │     └── <span class="fail">blocked</span> → EscalationRouter → rollback to SpecWriter/DomainDesigner
+  │     └── <span class="node">_reviewer_node</span>          → returns {"next_action": "COMPLETE"}
+  │
+  ├── <span class="func">task(subagent_name, input)</span>  ← full tools available
+  │     │
+  │     ├── normal result → merge into state → loop
+  │     └── BLOCKED result → write blockers → loop (graph routes to EscalationRouter)
+  │
+  └── repeat until COMPLETE or circuit breaker (max 50 iterations)</pre>
+</div>
+
+<h3>Architecture Change</h3>
+
+<table>
+  <thead>
+    <tr><th>Aspect</th><th>Before</th><th>After</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Who calls LLM?</td>
+      <td>Graph nodes (crippled, no tools)</td>
+      <td>Orchestrator SubAgents (full tools)</td>
+    </tr>
+    <tr>
+      <td>Who enforces ordering?</td>
+      <td>Graph (deterministic)</td>
+      <td>Graph (deterministic)</td>
+    </tr>
+    <tr>
+      <td>Code duplication?</td>
+      <td>Yes (graph duplicates agent logic)</td>
+      <td>No (agents/*.py is single source)</td>
+    </tr>
+    <tr>
+      <td>Can agents use filesystem/MCP?</td>
+      <td>No (graph nodes lack tools)</td>
+      <td>Yes (via orchestrator task())</td>
+    </tr>
+    <tr>
+      <td>Verification Gate</td>
+      <td>Fabricated test_results (always pass)</td>
+      <td>Real pytest execution via SubAgent shell tool</td>
+    </tr>
+    <tr>
+      <td>Graph node role</td>
+      <td>Autonomous LLM agent pipeline</td>
+      <td>Idempotent instruction producers (state→action)</td>
+    </tr>
+    <tr>
+      <td>Invocation method</td>
+      <td>Single graph.invoke() start-to-end</td>
+      <td>Re-entrant: invoke() per step, state preserved externally</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>New Components</h3>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>EscalationRouter (new deterministic node)</h4>
+    <p>Pure Python, zero LLM. Reads <code>state.blockers</code> and routes to fallback target based on <code>suggested_action</code>:</p>
+    <ul>
+      <li><code>REVISE_SPEC</code> → SpecWriter</li>
+      <li><code>REVISE_DESIGN</code> → DomainDesigner</li>
+      <li><code>HUMAN_REQUIRED</code> → END</li>
+    </ul>
+    <p><strong>Anti-loop protection:</strong> detects consecutive identical rollback paths (fires on 1st repetition) + global MAX_ESCALATIONS=3 circuit breaker.</p>
+  </div>
+  <div class="card">
+    <h4>run_pipeline_loop() (new orchestrator function)</h4>
+    <p>Registered as a <code>@tool</code> on the deepagent. Has direct access to <code>task()</code>. Drives the graph in a while-loop:</p>
+    <ol>
+      <li>graph.invoke(state) → instruction</li>
+      <li>If COMPLETE → return state</li>
+      <li>task(subagent, input) → parse BLOCKED or merge result</li>
+      <li>Loop with MAX_LOOP_ITERATIONS=50 circuit breaker</li>
+    </ol>
+  </div>
+</div>
+
+<h3>State Schema Extension</h3>
+
+<pre>
+<span class="keyword">class</span> <span class="type">Blocker</span>(TypedDict, total=False):
+    reason: <span class="type">str</span>
+    suggested_action: <span class="type">str</span>  <span class="comment"># "REVISE_SPEC" | "REVISE_DESIGN" | "HUMAN_REQUIRED"</span>
+    blocking_details: <span class="type">dict</span>
+
+<span class="keyword">class</span> <span class="type">NextAction</span>(TypedDict):
+    <span class="keyword">type</span>: <span class="type">str</span>              <span class="comment"># "CALL_SUBAGENT" | "COMPLETE"</span>
+    subagent: <span class="type">NotRequired[str]</span>
+    input: <span class="type">NotRequired[dict]</span>
+
+<span class="keyword">class</span> <span class="type">UniDevState</span>(TypedDict):
+    <span class="comment"># ... existing 12 fields ...</span>
+    next_action: <span class="type">NotRequired[NextAction]</span>       <span class="comment"># instruction for orchestrator loop</span>
+    blockers: <span class="type">NotRequired[list[Blocker]]</span>       <span class="comment"># structured blocking info</span>
+    escalation_history: <span class="type">NotRequired[list[str]]</span>  <span class="comment"># rollback trajectory (anti-loop)</span>
+</pre>
+
+<h3>Node Idempotency Pattern</h3>
+
+<p>Each of the 5 LLM nodes becomes an instruction producer using the unified pattern:
+<strong>(output_exists AND NOT needs_rework) ? skip : produce instruction</strong>.</p>
+
+<table>
+  <thead>
+    <tr><th>Node</th><th>Skip condition</th><th>Rework trigger</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>_domain_designer_node</td><td><code>state.domain_model</code> exists</td><td>— (never re-triggered)</td></tr>
+    <tr><td>_spec_writer_node</td><td><code>state.api_spec</code> exists</td><td><code>blockers</code> contains REVISE_SPEC</td></tr>
+    <tr><td>_test_generator_node</td><td><code>state.test_files</code> exists</td><td>— (never re-triggered)</td></tr>
+    <tr><td>_code_generator_node</td><td><code>state.modified_files</code> exists AND test_results.pass</td><td>test_results.pass is False (retry with failures)</td></tr>
+    <tr><td>_reviewer_node</td><td><code>state.review_report</code> exists</td><td>— (never re-triggered)</td></tr>
+  </tbody>
+</table>
+
+<h3>Sub-Agent BLOCKED Protocol</h3>
+
+<p>All 5 SubAgents standardize on a structured BLOCKED response when they encounter an unsolvable problem:</p>
+<pre>
+{
+    "status": "BLOCKED",
+    "reason": "API endpoint /v2/users/search does not exist in contract",
+    "suggested_action": "REVISE_SPEC",
+    "blocking_details": {...}
+}
+</pre>
+<p>The <code>_execute_subagent()</code> helper in <code>run_pipeline_loop()</code> detects BLOCKED status and writes it to
+<code>state.blockers</code>, triggering the EscalationRouter on the next graph.invoke().</p>
+
+<h3>File Manifest</h3>
+
+<table>
+  <thead>
+    <tr><th>File</th><th>Change</th><th style="width:60px">Net LOC</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>core/graph.py</code></td><td>Replace 5 LLM nodes with instruction producers. Remove <code>_create_node_model()</code>, <code>_extract_code_block()</code>, <code>_parse_file_paths()</code>. Remove all ChatOpenAI imports. Remove all agent system prompt imports. Add EscalationRouter node + edges. Extend UniDevState.</td><td>~400 → ~300</td></tr>
+    <tr><td><code>core/escalation_router.py</code></td><td><strong>New file</strong> — deterministic routing for blocked states with anti-loop detection</td><td>~35</td></tr>
+    <tr><td><code>core/verification_gate.py</code></td><td>Add blocked status detection alongside pass/fail</td><td>25 → ~30</td></tr>
+    <tr><td><code>orchestrator.py</code></td><td>Add <code>run_pipeline_loop()</code> (tool), <code>_merge_subagent_output()</code>, <code>_execute_subagent()</code>. Remove CompiledSubAgent wrapping. Update system prompt.</td><td>297 → ~400</td></tr>
+    <tr><td><code>agents/domain_designer.py</code></td><td>Add BLOCKED protocol to system prompt</td><td>54 → ~60</td></tr>
+    <tr><td><code>agents/spec_writer.py</code></td><td>Add BLOCKED protocol to system prompt</td><td>52 → ~58</td></tr>
+    <tr><td><code>agents/code_generator.py</code></td><td>Add BLOCKED protocol to system prompt</td><td>61 → ~67</td></tr>
+    <tr><td><code>agents/test_generator.py</code></td><td>Add BLOCKED protocol to system prompt</td><td>54 → ~60</td></tr>
+    <tr><td><code>agents/reviewer.py</code></td><td>Add BLOCKED protocol to system prompt</td><td>55 → ~61</td></tr>
+    <tr><td><code>tests/test_escalation_router.py</code></td><td><strong>New file</strong> — rollback, repeated path, max exceeded, unknown action</td><td>50</td></tr>
+    <tr><td><code>tests/test_run_pipeline_loop.py</code></td><td><strong>New file</strong> — mock graph + mock task(), loop termination, retry, blocked, circuit breaker</td><td>100</td></tr>
+    <tr><td><code>tests/test_graph.py</code></td><td>Rewrite — verify instruction-producing nodes, idempotency, EscalationRouter</td><td>343 → ~200</td></tr>
+    <tr><td><code>tests/test_verification_gate.py</code></td><td>Add blocked status test case</td><td>57 → ~70</td></tr>
+    <tr><td><code>tests/test_orchestrator.py</code></td><td>Update — verify CompiledSubAgent removed, run_pipeline_loop registered as tool</td><td>136 → ~160</td></tr>
+  </tbody>
+</table>
+
+<h3>Resolved Issues</h3>
+
+<table>
+  <thead>
+    <tr><th>Workspace</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><a href="https://github.com/admin-init/uni-dev-workspace/issues/11">workspace#11</a> → <a href="https://github.com/admin-init/uni-dev/issues/16">uni-dev#16</a></td><td>Fabricated test_results — graph no longer calls LLM; real pytest via SubAgent shell tool</td></tr>
+    <tr><td><a href="https://github.com/admin-init/uni-dev-workspace/issues/12">workspace#12</a></td><td>Graph/orchestrator duplication — graph is pure state machine; LLM lives only in agents/*.py</td></tr>
+    <tr><td><a href="https://github.com/admin-init/uni-dev-workspace/issues/19">workspace#19</a> → <a href="https://github.com/admin-init/uni-dev/issues/17">uni-dev#17</a></td><td>ROUTING_TABLE immutability — Graph removes all mutable state; EscalationRouter uses MappingProxyType pattern</td></tr>
+  </tbody>
+</table>
+
+<div class="card">
+  <h4>Design Decisions</h4>
+  <ul>
+    <li><strong>invoke + idempotency</strong> (not stream + checkpoint) — graph is a pure state→instruction converter. Each <code>graph.invoke()</code> is a complete, reproducible state transition. No checkpoint persistence needed for 9-node graph.</li>
+    <li><strong>Option A: run_pipeline_loop as @tool</strong> — the loop runs inside the deepagent context where <code>task()</code> is natively available. No tool re-binding needed. The orchestrator LLM becomes a classifier + initiator.</li>
+    <li><strong>run_pipeline_loop() in orchestrator.py</strong> (not separate module) — cohesion: the loop directly depends on the orchestrator's SubAgent registry and state merging logic. Single orchestrator scenario makes a separate module YAGNI.</li>
+    <li><strong>MAX_LOOP_ITERATIONS = 50</strong> — circuit breaker prevents infinite re-entry loops. Combined with EscalationRouter's repeated-path detection and global max, the system has defense in depth against runaway pipelines.</li>
+  </ul>
 </div>
 
 <!-- ── 13. Dependency Stack ── -->
