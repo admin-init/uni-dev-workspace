@@ -54,13 +54,26 @@ uni-dev/                             # Monorepo root (this repo)
     ├── src/uni_dev/
     │   ├── __init__.py
     │   ├── main.py                  #   CLI entry point (click)
-    │   ├── orchestrator.py          #   Main deepagent: DDD→SDD→TDD pipeline
-    │   ├── core/                    #   Deterministic LangGraph nodes (0 LLM)
-    │   │   ├── graph.py             #     Compiled StateGraph wiring
-    │   │   ├── verification_gate.py #     ① ~16 LOC — test pass/fail gate
-    │   │   ├── retry_controller.py  #     ② ~10 LOC — max 3 attempts
-    │   │   ├── migration_stepper.py #     ③ ~11 LOC — sequential array index
-    │   │   └── classification_router.py#  ④ ~13 LOC — immutable routing table
+    │   ├── orchestrator.py          #   create_orchestrator() — clean create_deep_agent() call
+    │   ├── core/                    #   Business-Semantic SOP Graph (v3)
+    │   │   ├── graph.py             #     compile_pipeline() — StateGraph with conditional edges
+    │   │   ├── state.py             #     PipelineState TypedDict (10 fields)
+    │   │   ├── gates.py             #     Deterministic verification gates (DDD, SDD, Test Judge)
+    │   │   ├── hitl.py              #     Human Approval node — LangGraph interrupt()
+    │   │   ├── nodes/               #     Phase nodes (agent + shell)
+    │   │   │   ├── classify.py      #       Issue classification node
+    │   │   │   ├── domain_design.py #       Deepagent phase: task("domain-designer")
+    │   │   │   ├── spec_write.py    #       Deepagent phase: task("spec-writer")
+    │   │   │   ├── test_generate.py #       Deepagent phase: task("test-generator")
+    │   │   │   ├── code_generate.py #       Deepagent phase: task("code-generator")
+    │   │   │   ├── run_tests.py     #       Shell: execute("pytest")
+    │   │   │   └── review.py        #       Deepagent phase: task("reviewer")
+    │   │   ├── verification_gate.py #     DDD/SDD gate logic (~30 LOC each)
+    │   │   ├── retry_controller.py  #     Fixed 3-attempt limit (~24 LOC)
+    │   │   └── classification_router.py#  Immutable routing table (~30 LOC)
+    │   ├── middleware/              #   Implementation glue (hidden from graph topology)
+    │   │   ├── output_cleaner.py    #     LLM output format cleaning
+    │   │   └── cost_tracking.py     #     Token/cost budget monitoring
     │   ├── agents/                  #   LLM sub-agents (deepagents task() targets)
     │   │   ├── domain_designer.py   #     DDD phase — entity/aggregate/bounded context
     │   │   ├── spec_writer.py       #     SDD phase — OpenAPI contracts
@@ -74,7 +87,7 @@ uni-dev/                             # Monorepo root (this repo)
     │   └── security/                #   Sensitive data protection
     │       └── log_filter.py        #     Middleware: PII/secret redaction
     ├── config/
-    │   └── default.yaml             #   Model, DB paths, pipeline settings
+    │   └── default.yaml             #   Model, DB paths, pipeline settings, LangSmith config
     ├── skills/
     │   └── backend-dev/
     │       └── SKILL.md             #   Progressive disclosure skill for agents
@@ -142,8 +155,9 @@ fix/*  ──► PR ──► develop ──► (runnable version) ──► PR 
 | `parsers` — parser plugins | `core` — deterministic nodes |
 | `store` — SQLite/Chroma/Graph | `agents` — LLM sub-agents |
 | `generators` — spec generation | `orchestrator` — main pipeline |
-| `mcp` — MCP server | `webhooks` — issue ingestion |
-| `cli` — command-line | `security` — log filter |
+| `mcp` — MCP server | `middleware` — output/cost/monitor |
+| `cli` — command-line | `webhooks` — issue ingestion |
+| | `security` — log filter |
 | | `cli` — command-line |
 
 **Examples:**
@@ -185,10 +199,10 @@ chore(uni-dev): pin deepagents>=0.5.3 in pyproject.toml
 | `M2-storage-layer` | uni-kb | 2 | SQLite (8 tables) + ChromaDB (14 idx) + NetworkX |
 | `M3-nodejs-parser` | uni-kb | 3 | Node.js/Express/NestJS parser plugins |
 | `M4-generators-mcp` | uni-kb | 4 | 6 generators + 20 MCP tools |
-| `M5-deterministic-core` | uni-dev | 5 | 4 LangGraph nodes + compiled StateGraph |
-| `M6-orchestrator-agents` | uni-dev | 6 | Main deepagent + 5 sub-agents |
-| `M7-security` | uni-dev | 7 | Log filter middleware |
-| `M8-webhooks-cli` | uni-dev | 8 | Webhook server + CLI surface |
+| `M5-sop-graph` | uni-dev | 5 | Business-semantic SOP StateGraph + verification gates + HITL checkpoint |
+| `M6-orchestrator-v3` | uni-dev | 6 | Clean orchestrator + 5 sub-agents + phase nodes |
+| `M7-middleware` | uni-dev | 7 | OutputCleaner + CostTracking + Monitor + SecurityFilter middleware |
+| `M8-observability` | uni-dev | 8 | LangSmith tracing + CLI resume/approve/reject + webhook server |
 
 ---
 
@@ -204,10 +218,22 @@ Issue Received
   ├─ Document in /docs/domain-model.md
   │
   ▼
+[VERIFY] DDD Gate (deterministic, zero LLM)
+  ├─ Entities defined? Relationships mapped? Bounded contexts identified?
+  ├─ Pass → continue to SDD
+  ├─ Fail → Human Approval checkpoint
+  │
+  ▼
 [SDD] Specification-Driven Development
   ├─ Write spec YAML before any code
   ├─ API contracts (OpenAPI), interfaces, agent prompts
   ├─ Spec file: /specs/<component>.yaml
+  │
+  ▼
+[VERIFY] SDD Gate (deterministic, zero LLM)
+  ├─ YAML parseable? Endpoints defined? Schemas valid?
+  ├─ Pass → continue to TDD
+  ├─ Fail → Human Approval checkpoint
   │
   ▼
 [TDD] Test-Driven Development
@@ -216,10 +242,21 @@ Issue Received
   ├─ Run pytest before every commit
   │
   ▼
-[VERIFY] Deterministic Gate (uni-dev only)
-  ├─ MCP compare_api_responses()
-  ├─ MCP verify_contract()
-  ├─ Test exit code → pass or fail
+[VERIFY] Test Result Judge (deterministic, zero LLM)
+  ├─ pytest exit code == 0?
+  ├─ Pass → continue to Review
+  ├─ Fail → Retry Controller (max 3 attempts)
+  │   ├─ attempt ≤ 3 → back to Code Generator with failure details
+  │   └─ attempt > 3 → Human Approval checkpoint
+  │
+  ▼
+[Review] Final Review
+  ├─ Spec compliance check
+  ├─ Security review (no hardcoded secrets)
+  ├─ Documentation gaps
+  │
+  ▼
+[END] Pipeline Complete
 ```
 
 ### DDD Phase (Before Code)
@@ -447,30 +484,59 @@ gh api repos/:owner/:repo/milestones -f title="M<N>-<name>" -f description="..."
 
 ## Agent-Specific Rules (uni-dev only)
 
-### Deterministic Core Nodes (`uni-dev/src/uni_dev/core/`)
+### Business-Semantic SOP Graph (`uni-dev/src/uni_dev/core/`)
 
-> **CRITICAL:** These files are the non-overridable backbone of the system.
+> **CRITICAL:** The graph topology is a "map of business semantics," not a "stream of code execution."
 
-- **Zero LLM calls** — pure Python only
-- **~50 LOC total** across all 4 files
-- **100% test coverage** required
-- **Immutable routing tables** — no dynamic dispatch
-- **Fixed retry limit** — 3 attempts, no argument
-- **Sequential stepping** — LLM cannot skip or reorder
+**Architecture (v3):**
+- `compile_pipeline()` builds a LangGraph `StateGraph` with conditional edges
+- **Agent nodes** invoke deepagents via `task()` — LLM has full autonomy within each phase
+- **Gate nodes** are deterministic, zero-LLM — they validate business requirements between phases
+- **HITL node** uses LangGraph `interrupt()` for human approval checkpoints
+- **Checkpointing** via `SqliteSaver` enables pause/resume per thread
 
-| Node | File | LOC | Latency |
-|------|------|-----|---------|
-| Verification Gate | `verification_gate.py` | ~16 | <1ms |
-| Retry Controller | `retry_controller.py` | ~10 | <1ms |
-| Migration Stepper | `migration_stepper.py` | ~11 | <1ms |
-| Classification Router | `classification_router.py` | ~13 | <1ms |
+**Gate Nodes (explicit in topology, zero LLM):**
+
+| Gate | File | Purpose | LOC |
+|------|------|---------|-----|
+| DDD Gate | `gates.py` | Validates domain model: entities, relationships, bounded contexts | ~30 |
+| SDD Gate | `gates.py` | Validates OpenAPI spec: YAML parseable, endpoints defined, schemas valid | ~30 |
+| Test Judge | `gates.py` | Reads pytest exit code, routes pass/fail | ~25 |
+| Retry Controller | `retry_controller.py` | Fixed 3-attempt limit, routes retry/escalate | ~24 |
+| Classification Router | `classification_router.py` | Immutable routing table for issue types | ~30 |
+
+**Decision Heuristic: Node vs Middleware:**
+- Does its result affect the next step in the graph? → **Explicit Node**
+- Does it need manual review or independent visibility in Trace? → **Explicit Node**
+- Is it merely "cleaning/enhancement" of current node's output? → **Middleware**
+- Is it a global guard (budget, logging) unrelated to SOP phases? → **Middleware**
+
+### Middleware (`uni-dev/src/uni_dev/middleware/`)
+
+Implementation glue hidden from the graph topology:
+
+| Middleware | Hook | Purpose |
+|-----------|------|---------|
+| `OutputCleanerMiddleware` | `wrap_model_call` | LLM output format cleaning (markdown markers, JSON escapes) |
+| `CostTrackingMiddleware` | `wrap_model_call` | Token/cost budget monitoring, per-phase tracking |
+| `MonitorMiddleware` | `wrap_tool_call` | Observability: task() delegation timing, tool calls |
+| `SecurityFilterMiddleware` | `wrap_tool_call` | PII/secret redaction (7 regex patterns) |
 
 ### LLM Sub-Agents (`uni-dev/src/uni_dev/agents/`)
 
 - System prompts are specifications — draft in YAML before code
 - Agents query uni-kb; they never trust memory
 - Tools must be from uni-kb MCP or whitelisted filesystem operations
-- Each agent returns structured output; no free-form text to orchestrator
+- Each agent returns structured output; sub-agents return `{"status": "BLOCKED", ...}` when stuck
+- Phase nodes invoke sub-agents via `create_deep_agent()` with the sub-agent's system prompt
+
+### Human-in-the-Loop
+
+- Pipeline runs autonomously by default
+- Human intervention triggered only on: verification gate fail, retry exhaustion (3 attempts), or BLOCKED with `HUMAN_REQUIRED`
+- `HumanApprovalNode` uses LangGraph `interrupt()` to pause execution
+- Checkpoint via `SqliteSaver` enables `uni-dev resume <thread_id>`
+- CLI: `approve`, `reject`, `retry` provide human decisions to resume
 
 ---
 
@@ -509,4 +575,12 @@ pytest
 
 # Run the pipeline on an issue
 uni-dev run "Add user avatar upload endpoint"
+
+# Resume a paused pipeline
+uni-dev resume <thread_id>
+
+# Human-in-the-loop actions
+uni-dev approve <thread_id>
+uni-dev reject <thread_id>
+uni-dev retry <thread_id>
 ```
