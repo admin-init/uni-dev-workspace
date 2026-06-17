@@ -204,7 +204,7 @@ hr { border: none; border-top: 1px solid var(--surface1); margin: 32px 0; }
 <span class="comment">                           ▼</span>
 <span class="comment">┌─────────────────────────────────────────────────────────────────┐</span>
 <span class="comment">│              <span class="keyword">Knowledge Base</span> (Single Source of Truth)              │</span>
-<span class="comment">│  SQLite (8 tables)  ChromaDB (14 indexes)  NetworkX (8 nodes)   │</span>
+<span class="comment">│  SQLite (7 tables)  ChromaDB (14 collections)  NetworkX (8 nodes) │</span>
 <span class="comment">│  MCP Server (20 tools) — plugin-based parsers                    │</span>
 <span class="comment">└─────────────────────────────────────────────────────────────────┘</span>
 </pre>
@@ -688,8 +688,29 @@ $ uni-dev status
   </div>
   <div class="card">
     <h4><span class="badge badge-green">Knowledge Base</span></h4>
-    <p>SQLite (8 tables) + ChromaDB (14 indexes) + NetworkX graph. MCP Server (20 tools). Plugin-based parsers for Java/Node.js.</p>
+    <p>Java/Spring Boot (4 parsers) + Node.js/Express/NestJS (4 parsers). SQLite (7 tables) + ChromaDB (14 collections: 8 active + 6 reserved) + NetworkX graph (8 node types). MCP Server (20 tools).</p>
   </div>
+</div>
+
+<div class="card">
+  <h4>Parser → ChromaDB Mapping</h4>
+  <table>
+    <thead>
+      <tr><th>Language</th><th>Parser</th><th>ChromaDB Collection</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Java</td><td>controller.py</td><td>code_java_controller</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>Java</td><td>service.py</td><td>code_java_service</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>Java</td><td>entity.py</td><td>code_java_entity</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>Java</td><td>mapper.py</td><td>code_java_mapper</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>Node.js</td><td>route.py</td><td>code_nodejs_route</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>Node.js</td><td>service.py</td><td>code_nodejs_service</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>Node.js</td><td>model.py</td><td>code_nodejs_model</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>Node.js</td><td>middleware.py</td><td>code_nodejs_middleware</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td>—</td><td>—</td><td>specs_api, specs_business_logic, specs_data_model, specs_auth, specs_config</td><td><span class="badge badge-yellow">Reserved</span></td></tr>
+      <tr><td>—</td><td>—</td><td>db_schema, project_docs, migration_checklists</td><td><span class="badge badge-yellow">Reserved</span></td></tr>
+    </tbody>
+  </table>
 </div>
 
 <h3>CLI Commands</h3>
