@@ -847,6 +847,115 @@ test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>     <s
   </ul>
 </div>
 
+<hr>
+
+<!-- ── Refactor: Re-entrant State Machine ── -->
+<h2 id="refactor-retro">Refactor Retrospective — Re-entrant State Machine Architecture</h2>
+
+<div class="card">
+  <p>
+    <strong>Repo:</strong> <a href="https://github.com/admin-init/uni-dev">admin-init/uni-dev</a>
+    &nbsp;|&nbsp; <strong>Commit:</strong> <code>d8e2a1e</code>
+    &nbsp;|&nbsp; <strong>Issue:</strong> <a href="https://github.com/admin-init/uni-dev/issues/18">#18</a> &nbsp;|&nbsp; <strong>PR:</strong> <a href="https://github.com/admin-init/uni-dev/pull/19">#19</a> (merged), <a href="https://github.com/admin-init/uni-dev/pull/20">#20</a> (tool wiring)
+    &nbsp;|&nbsp; <strong>Tests:</strong> 192 (existing 187 + 5 new / 14 files changed) &nbsp;|&nbsp; <strong>CI:</strong> <span class="badge badge-green">passing</span>
+  </p>
+</div>
+
+<div class="card">
+  <h4>What Was Done</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File(s)</th><th style="width:48px">Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>EscalationRouter</strong></td><td><code>core/escalation_router.py</code> — deterministic routing for blocked states, anti-loop detection (repeated path + global max), immutable routing table</td><td>10</td></tr>
+      <tr><td><strong>VerificationGate</strong></td><td><code>core/verification_gate.py</code> — extended with pass/fail/blocked gate (blockers take priority over test_results)</td><td>10 (+3)</td></tr>
+      <tr><td><strong>Pipeline Graph</strong></td><td><code>core/graph.py</code> — rewritten: 5 LLM nodes → idempotent instruction producers (zero LLM calls), EscalationRouter wired, UniDevState extended with next_action/blockers/escalation_history</td><td>18 (rewritten)</td></tr>
+      <tr><td><strong>Orchestrator</strong></td><td><code>orchestrator.py</code> — run_pipeline_loop tool (LLM-driven re-entrant loop), _merge_subagent_output(), _make_pipeline_tool(), removed CompiledSubAgent, MAX_LOOP_ITERATIONS=50</td><td>21 (+5)</td></tr>
+      <tr><td><strong>Agent System Prompts</strong></td><td>5 <code>agents/*.py</code> files — BLOCKED protocol added: structured JSON response for unsolvable problems with suggested_action routing</td><td>—</td></tr>
+      <tr><td><strong>Pipeline Loop Tests</strong></td><td><code>test_run_pipeline_loop.py</code> — full cycle, BLOCKED handling, no-action, explicit COMPLETE</td><td>4</td></tr>
+      <tr><td colspan="2" style="text-align:right"><strong>Total new/changed</strong></td><td><strong>14 files, +949/-668 LOC</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Problems &amp; Solutions</h4>
+  <table>
+    <thead>
+      <tr><th style="width:24px">#</th><th>Problem</th><th>Root Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Graph fabricated test_results always passing — VerificationGate never triggered fail</td>
+        <td>graph.py <code>_code_generator_node</code> hardcoded <code>test_results: {"pass": True, "output": "llm-generated"}</code></td>
+        <td>Graph now produces instructions only; real test execution via SubAgent with shell tool via task()</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Graph/orchestrator code duplication — 5 LLM agent nodes in graph.py duplicated agents/*.py logic</td>
+        <td>M5→M6 design assumed graph nodes could delegate upward to orchestrator sub-agents; deepagents has no "call parent's sub-agent from inside a sub-agent" API (two separate LangGraph runtimes)</td>
+        <td>Graph refactored to pure instruction producer (state→action). LLM calls exclusively through orchestrator task() with full tool access. No LLM imports in graph.py.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>CI failed on 9 pre-existing M10 tests — model_name→model TypeError + stale prompt substring assertions</td>
+        <td>M10 commit changed create_*() signature from model_name= to model=. System prompt tests checked for M6-era phrases no longer present after BLOCKED protocol addition</td>
+        <td>Fixed model_name→model in 5 test files. Updated 4 prompt substring assertions to match actual prompt content (e.g. "Knowledge Base"→"Do NOT trust your memory")</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>deepagents.task not importable from Python — cannot call task() inside run_pipeline_loop tool</td>
+        <td><code>task()</code> is a SubAgentMiddleware method, only available in deepagent LLM tool context; not a module-level export</td>
+        <td>Pipeline tool returns CALL_TASK instructions for the LLM to execute. The LLM drives the re-entrant loop: call run_pipeline_loop → get instruction → call task() → merge result → call run_pipeline_loop again</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>plan.html Phase 7 marked "future" but M8 retrospective confirmed complete</td>
+        <td>plan.html not updated after M8 merge</td>
+        <td>Changed Phase 7 from future→active, added M8 Complete badge, deliverables, commit/issue/PR links</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>plan.html Phase 8 section entirely missing</td>
+        <td>Phase numbering gap between 7 and 9</td>
+        <td>Documented as known gap (workspace#14); phases track milestone numbers which skip 8</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h4>Branch &amp; CI/CD Configuration</h4>
+  <pre>
+<span class="comment"># Branch strategy</span>
+develop                    <span class="comment">&larr; integration, PR target</span>
+feat/core/refactor-reentrant-state-machine <span class="comment">&larr; main refactor (squash PR #19 → develop)</span>
+fix/orchestrator/wire-pipeline-tool        <span class="comment">&larr; tool wiring fix (PR #20 → develop)</span>
+
+<span class="comment"># CI/CD (.github/workflows/ci.yml)</span>
+lint:   <span class="func">uvx ruff check src/</span>                        <span class="comment"># &lt;10s</span>
+test:   <span class="func">uv pip install -e ".[dev]" && pytest -v</span>     <span class="comment"># 3.11, 3.12, 3.13 (192 tests)</span>
+
+<span class="comment"># Architecture change</span>
+<span class="comment"># Before: graph.py called LLMs directly → no tools, fabricated test_results</span>
+<span class="comment"># After:  graph.py produces instructions → LLM drives loop via task() → full tools</span>
+<span class="comment"># New nodes: EscalationRouter (anti-loop blocked routing) + VerificationGate (blocked state)</span></pre>
+</div>
+
+<div class="card">
+  <h4>Key Takeaways for Future Milestones</h4>
+  <ul>
+    <li><strong>Two-runtime architecture is a design flaw.</strong> CompiledSubAgent in deepagents cannot call parent's sub-agents. Don't nest LangGraph runtimes expecting upward delegation.</li>
+    <li><strong>Instruction-producing state machines work.</strong> Graph as pure state→action converter, driven by an external loop, is a clean pattern that preserves deterministic enforcement while giving LLM-controlled tasks full tool access.</li>
+    <li><strong>deepagents.task is not a Python module.</strong> It's a SubAgentMiddleware method. Tools that need to call sub-agents must return instructions to the LLM rather than calling task() internally.</li>
+    <li><strong>System prompt substring tests are brittle.</strong> Adding a BLOCKED protocol to prompts shifted content enough to break 4 assertion tests. Test for semantic intent, not exact substrings.</li>
+    <li><strong>BLOCKED protocol enables structured rollback.</strong> EscalationRouter with repeated-path detection + MAX_ESCALATIONS provides defense-in-depth against infinite pipeline loops.</li>
+    <li><strong>Idempotency pattern is essential for re-entrant graphs.</strong> Each node checks (output_exists AND NOT needs_rework) before producing a CALL_TASK instruction. This allows the graph to be invoked repeatedly without redundant work.</li>
+  </ul>
+</div>
+
 </div>
 </body>
 </html>
